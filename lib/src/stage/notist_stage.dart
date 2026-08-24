@@ -5,7 +5,12 @@ import 'package:kallopis/kallopis.dart';
 import '../krepis/krepis_editor_controller.dart';
 import '../krepis/notist_flow_editor.dart';
 import '../krepis/notist_local_save_projection.dart';
+import '../assets/notist_assets_page.dart';
+import '../assistant/notist_assistant_page.dart';
+import '../journal/notist_journals_page.dart';
 import '../project/notist_project_controller.dart';
+import '../shell/notist_stage_zone.dart';
+import '../shell/notist_workspace_destination.dart';
 import 'notist_flow_stage_actions.dart';
 import 'notist_project_page.dart';
 import 'notist_stage_identity_header.dart';
@@ -18,7 +23,15 @@ class NotistStage extends StatelessWidget {
     this.flowEditorBuilder,
     this.projectController,
     this.onImportMarkdownFile,
+    this.zone = NotistStageZone.document,
+    this.destination = NotistWorkspaceDestination.journals,
   });
+
+  /// Stage 目前該顯示文件還是入口畫面。
+  final NotistStageZone zone;
+
+  /// [zone] 為 destination 時要顯示哪一個入口。
+  final NotistWorkspaceDestination destination;
 
   final String flowFilePath;
   final NotistFlowEditorBuilder? flowEditorBuilder;
@@ -27,6 +40,10 @@ class NotistStage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (zone == NotistStageZone.destination) {
+      return _buildDestination();
+    }
+
     final selectedFlow = projectController?.selectedDocument;
     final flowPath = selectedFlow?.filePath ?? flowFilePath;
 
@@ -39,6 +56,45 @@ class NotistStage extends StatelessWidget {
       projectController: projectController,
       onImportMarkdownFile: onImportMarkdownFile,
     );
+  }
+
+  /// 三個入口畫面。
+  ///
+  /// 資料一律由外部給——這裡不編造內容。沒有資料時各畫面自己顯示空狀態，
+  /// 那比塞假資料誠實：假資料會讓人以為功能已經接上了。
+  Widget _buildDestination() {
+    switch (destination) {
+      case NotistWorkspaceDestination.journals:
+        final now = DateTime.now();
+        return NotistJournalsPage(
+          month: DateTime(now.year, now.month),
+          monthLabel: '${now.year} 年 ${now.month} 月',
+          summaryLabel: '',
+          weekdayLabels: const ['一', '二', '三', '四', '五', '六', '日'],
+          previousMonthLabel: '上個月',
+          nextMonthLabel: '下個月',
+          today: now,
+        );
+      case NotistWorkspaceDestination.ai:
+        return const NotistAssistantPage(
+          placeholder: '問一個關於這則筆記或整個專案的問題',
+          sendLabel: '送出',
+          attachLabel: '附加',
+          scopeTags: ['這則筆記', '整個專案'],
+        );
+      case NotistWorkspaceDestination.assets:
+        return const NotistAssetsPage(
+          sortLabel: '排序',
+          sortOptions: {
+            'recent': '最近',
+            'name': '名稱',
+            'size': '大小',
+            'kind': '類型',
+          },
+          selectedSortId: 'recent',
+          summaryLabel: '',
+        );
+    }
   }
 }
 

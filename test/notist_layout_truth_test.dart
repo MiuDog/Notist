@@ -295,4 +295,32 @@ void main() {
       },
     );
   });
+
+  group('導覽與文件互斥', () {
+    // 版面稿第 319-321 行：
+    //   Nav and explorer share one selection: picking a nav item clears the
+    //   document selection, and picking a note clears the nav item.
+    //   selected: zone==="nav" && n.id===section
+    //
+    // 這條是我從實際跑起來的畫面看出來的——文件區時「Journals」仍然亮著。
+    // 只靠眼睛看得到一次，寫成測試才擋得住第二次。
+    testWidgets('顯示文件時，導覽項目一個都不亮', (tester) async {
+      await pumpAtPreviewSize(tester);
+
+      final selected = tester
+          .widgetList<KlpSidebarNavigationButton>(
+            find.byType(KlpSidebarNavigationButton),
+          )
+          .where((button) => button.selected)
+          .toList();
+
+      expect(
+        selected,
+        isEmpty,
+        reason:
+            '起始顯示的是 Flow 文件，此時側欄不該有任何導覽項目亮著——'
+            '兩邊同時亮，使用者無從判斷現在在哪。',
+      );
+    });
+  });
 }
