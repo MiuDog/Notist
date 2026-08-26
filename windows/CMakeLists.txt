@@ -54,7 +54,7 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 # 不設定該變數，因此不會依賴 sibling checkout。
 include(FetchContent)
 set(NOTIST_KREPIS_GIT_SHA
-  "0351dac27da6f293d68464d3312c845cc8aa87bc"
+  "546891bc2663105f87cdcf94da6513a6c051d1cf"
 )
 set(KREPIS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(

@@ -224,7 +224,7 @@ try {
 		packageVersion = $packageVersion
 		sourceCommit = (& git -C $projectRoot rev-parse HEAD).Trim()
 		kallopisCommit = 'ee42c3854d12cd7b4100b7b61697c90c938ce570'
-		krepisCommit = '0351dac27da6f293d68464d3312c845cc8aa87bc'
+		krepisCommit = '546891bc2663105f87cdcf94da6513a6c051d1cf'
 		createdAtUtc = [DateTime]::UtcNow.ToString('o')
 		files = @($manifestFiles)
 	}

@@ -2,7 +2,7 @@ $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
 $kallopisSha = 'ee42c3854d12cd7b4100b7b61697c90c938ce570'
-$krepisSha = '0351dac27da6f293d68464d3312c845cc8aa87bc'
+$krepisSha = '546891bc2663105f87cdcf94da6513a6c051d1cf'
 $pubspec = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'pubspec.yaml')
 $lockfile = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'pubspec.lock')
 $windowsCmake = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'windows\CMakeLists.txt')
