@@ -166,9 +166,12 @@ $kallopisLicense = Get-ChildItem -LiteralPath $kallopisRoot -File |
 if (!$kallopisLicense) {
 	throw 'Kallopis 缺少專案自身 LICENSE；不得封裝。'
 }
-$kallopisNotices = Join-Path $kallopisRoot 'THIRD_PARTY_NOTICES.md'
-if (!(Test-Path -LiteralPath $kallopisNotices -PathType Leaf)) {
-	throw 'Kallopis 缺少 THIRD_PARTY_NOTICES.md；不得封裝。'
+$kallopisThirdPartyLicenses = @(
+	Join-Path $kallopisRoot 'THIRD_PARTY_NOTICES.md'
+	Join-Path $kallopisRoot 'assets\icons\ui_oval\LUCIDE_LICENSE.txt'
+) | Where-Object { Test-Path -LiteralPath $_ -PathType Leaf }
+if (!$kallopisThirdPartyLicenses) {
+	throw 'Kallopis 缺少 third-party notices／licenses；不得封裝。'
 }
 $krepisLicense = Get-ChildItem -LiteralPath $krepisRoot -File |
 	Where-Object { $_.Name -match '^LICENSE(?:\.|$)' } |
@@ -199,7 +202,9 @@ try {
 	New-Item -ItemType Directory -Force -Path (Join-Path $licenseRoot 'Kallopis') | Out-Null
 	New-Item -ItemType Directory -Force -Path (Join-Path $licenseRoot 'Krepis') | Out-Null
 	Copy-Item -LiteralPath $kallopisLicense.FullName -Destination (Join-Path $licenseRoot 'Kallopis')
-	Copy-Item -LiteralPath $kallopisNotices -Destination (Join-Path $licenseRoot 'Kallopis')
+	foreach ($thirdPartyLicense in $kallopisThirdPartyLicenses) {
+		Copy-Item -LiteralPath $thirdPartyLicense -Destination (Join-Path $licenseRoot 'Kallopis')
+	}
 	Copy-Item -LiteralPath $krepisLicense.FullName -Destination (Join-Path $licenseRoot 'Krepis')
 	Copy-Item `
 		-LiteralPath $krepisThirdPartyLicenses `
@@ -218,8 +223,8 @@ try {
 	$manifest = [ordered]@{
 		packageVersion = $packageVersion
 		sourceCommit = (& git -C $projectRoot rev-parse HEAD).Trim()
-		kallopisCommit = '465c5fec9a2fb5691c7ca7388d61744a1e847def'
-		krepisCommit = '1f35fab7409f04c75c11ba4077abd5cafa6ae497'
+		kallopisCommit = 'ee42c3854d12cd7b4100b7b61697c90c938ce570'
+		krepisCommit = '0351dac27da6f293d68464d3312c845cc8aa87bc'
 		createdAtUtc = [DateTime]::UtcNow.ToString('o')
 		files = @($manifestFiles)
 	}

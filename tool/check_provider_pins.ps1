@@ -1,8 +1,8 @@
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-$kallopisSha = '465c5fec9a2fb5691c7ca7388d61744a1e847def'
-$krepisSha = '1f35fab7409f04c75c11ba4077abd5cafa6ae497'
+$kallopisSha = 'ee42c3854d12cd7b4100b7b61697c90c938ce570'
+$krepisSha = '0351dac27da6f293d68464d3312c845cc8aa87bc'
 $pubspec = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'pubspec.yaml')
 $lockfile = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'pubspec.lock')
 $windowsCmake = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'windows\CMakeLists.txt')
@@ -14,7 +14,8 @@ if (!$pubspec.Contains('https://github.com/MiuDog/Kallopis.git') -or
 	!$pubspec.Contains("ref: $kallopisSha")) {
 	throw 'Kallopis 必須固定到核准的 GitHub commit。'
 }
-if (!$lockfile.Contains("resolved-ref: `"$kallopisSha`"") -or
+if ((!$lockfile.Contains("resolved-ref: $kallopisSha") -and
+	!$lockfile.Contains("resolved-ref: `"$kallopisSha`"")) -or
 	!$lockfile.Contains('url: "https://github.com/MiuDog/Kallopis.git"')) {
 	throw 'pubspec.lock 的 Kallopis resolved-ref 或正式 URL 不符。'
 }
@@ -27,7 +28,7 @@ if ($windowsCmake.Contains('../../Krepis') -or
 	throw 'Windows CMake 不得依賴 sibling Krepis checkout。'
 }
 if (!$windowsCmake.Contains('message(FATAL_ERROR "Notist requires Krepis ABI major 1")') -or
-	!$windowsCmake.Contains('message(FATAL_ERROR "Notist requires Krepis ABI minor 7")')) {
+	!$windowsCmake.Contains('message(FATAL_ERROR "Notist requires Krepis ABI minor 8")')) {
 	throw 'Windows CMake 缺少 Krepis ABI fail-closed gate。'
 }
 

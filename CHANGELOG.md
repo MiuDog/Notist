@@ -7,7 +7,7 @@
 ### Added
 
 - Windows-first 單文件知識工作區，包含 Primary Sidebar、FileExplorer 與單一 Stage。
-- 由 Krepis ABI 1.7 提供資料真相的 Flow Block 編輯、undo/redo、保存與 Ink capture。
+- 由 Krepis ABI 1.8 提供資料真相的 Flow Block 編輯、visual geometry、undo/redo、保存與 Ink capture。
 - Shift 多選、拖曳排序、same-ID Block 轉換、Todo toggle、Slash Menu 與右鍵選單。
 - 以 Flow 標題與資料夾為範圍的快速搜尋。
 - 可選擇保留上次導覽狀態或使用初始狀態。

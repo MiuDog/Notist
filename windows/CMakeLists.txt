@@ -54,7 +54,7 @@ add_subdirectory(${FLUTTER_MANAGED_DIR})
 # 不設定該變數，因此不會依賴 sibling checkout。
 include(FetchContent)
 set(NOTIST_KREPIS_GIT_SHA
-  "1f35fab7409f04c75c11ba4077abd5cafa6ae497"
+  "0351dac27da6f293d68464d3312c845cc8aa87bc"
 )
 set(KREPIS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 FetchContent_Declare(
@@ -66,14 +66,14 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(krepis)
 
-# Dart bridge 只接受 Krepis ABI 1.7。版本不符必須在 configure 階段停止，不能等到
+# Dart bridge 只接受 Krepis ABI 1.8。版本不符必須在 configure 階段停止，不能等到
 # 使用者啟動 editor 才發現 DLL 與 FFI contract 不相容。
 file(READ "${krepis_SOURCE_DIR}/include/krepis/krepis_c.h" KREPIS_ABI_HEADER)
 if(NOT KREPIS_ABI_HEADER MATCHES "KREPIS_ABI_MAJOR[ \t]*=[ \t]*1,")
   message(FATAL_ERROR "Notist requires Krepis ABI major 1")
 endif()
-if(NOT KREPIS_ABI_HEADER MATCHES "KREPIS_ABI_MINOR[ \t]*=[ \t]*7,")
-  message(FATAL_ERROR "Notist requires Krepis ABI minor 7")
+if(NOT KREPIS_ABI_HEADER MATCHES "KREPIS_ABI_MINOR[ \t]*=[ \t]*8,")
+  message(FATAL_ERROR "Notist requires Krepis ABI minor 8")
 endif()
 
 # Application build; see runner/CMakeLists.txt.

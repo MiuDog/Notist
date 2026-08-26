@@ -601,7 +601,7 @@ final class KrepisNative {
   KrepisNative._(this.library);
 
   static const int requiredAbiMajor = 1;
-  static const int requiredAbiMinor = 7;
+  static const int requiredAbiMinor = 8;
 
   factory KrepisNative.open() {
     if (!Platform.isWindows) {
@@ -665,7 +665,7 @@ final class KrepisNative {
   late final KrepisRelease releaseOutline;
 
   int createNegotiatedEngine(ffi.Pointer<ffi.Pointer<ffi.Void>> outEngine) {
-    // create／destroy 是 bootstrap pair；其餘 symbol 只能在 ABI 1.7 協商成功後綁定。
+    // create／destroy 是 bootstrap pair；其餘 symbol 只能在 ABI 1.8 協商成功後綁定。
     final create = library.lookupFunction<_CreateNative, KrepisCreate>(
       'krepis_display_engine_create',
     );

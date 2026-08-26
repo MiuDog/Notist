@@ -18,7 +18,7 @@ void main() {
 
   test('requires the additive Flow projection ABI minor', () {
     expect(KrepisNative.requiredAbiMajor, 1);
-    expect(KrepisNative.requiredAbiMinor, 7);
+    expect(KrepisNative.requiredAbiMinor, 8);
     expect(ffi.sizeOf<KrepisFlowDocumentInfo>(), 24);
     expect(ffi.sizeOf<KrepisMarkdownImportResultNative>(), 24);
   });

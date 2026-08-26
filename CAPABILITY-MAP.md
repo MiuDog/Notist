@@ -10,7 +10,7 @@
 
 1. 第一版以 Windows 桌面鍵盤、滑鼠與手繪板為主要輸入；行動裝置不在本輪範圍。
 2. Notist 現有未提交工作樹需要保留，但其中的假筆記、假路由、固定 `Saved` 與展示內容不是產品基線。
-3. Krepis ABI 1.7 已是 Flow Block、editing command、undo event 與 Ink capture 的唯一 authority；Notist 不另造第二份資料真相。
+3. Krepis ABI 1.8 已是 Flow Block、visual geometry、editing command、undo event 與 Ink capture 的唯一 authority；Notist 不另造第二份資料真相。
 4. Kallopis 只提供無產品語意的外觀與通用互動機制；選單內容、命令可用性與筆記操作規則由 Notist 決定。
 5. NTS-0001～NTS-0005 仍是 Proposed；NTS-0006 已依使用者明確同意 Accepted，只關閉第一個
    `flow` runtime 與 Markdown 單向匯入邊界，不推定核准 Canva／Sheet。
@@ -73,7 +73,7 @@
 關閉：第一個 production runtime 只建立 `flow`；Canva／Sheet 仍等待 NTS-0002 另行核准。
 
 `block-core-abi`、`block-persistence-contract` 與 `ink-core-abi` provider gate 已於 2026-08-25 推進到
-Krepis ABI 1.7。Notist consumer 已驗證 ABI 1.4 stable selection／move／convert、ABI 1.6 undo-history
+Krepis ABI 1.8。Notist consumer 已驗證 ABI 1.4 stable selection／move／convert、ABI 1.6 undo-history
 event，以及 ABI 1.5/1.7 Ink outline／capture／commit。Block delete 與跨 Block 文字 selection geometry
 仍沒有 provider command／projection，因此維持 gated。
 
