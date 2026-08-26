@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "io.github.miudog" "\0"
-            VALUE "FileDescription", "jotist" "\0"
+            VALUE "FileDescription", "notist" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "jotist" "\0"
+            VALUE "InternalName", "notist" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 io.github.miudog. All rights reserved." "\0"
-            VALUE "OriginalFilename", "jotist.exe" "\0"
-            VALUE "ProductName", "jotist" "\0"
+            VALUE "OriginalFilename", "notist.exe" "\0"
+            VALUE "ProductName", "notist" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

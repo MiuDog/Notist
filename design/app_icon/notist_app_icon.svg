@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+	<defs>
+		<clipPath id="left-column">
+			<rect x="264" y="264" width="104" height="496" rx="10" />
+		</clipPath>
+		<clipPath id="right-column">
+			<rect x="656" y="264" width="104" height="496" rx="10" />
+		</clipPath>
+	</defs>
+
+	<rect width="1024" height="1024" rx="192" fill="#232120" />
+
+	<g clip-path="url(#left-column)">
+		<rect x="264" y="264" width="36" height="496" fill="#1C98ED" />
+		<rect x="300" y="264" width="68" height="496" fill="#FFFFFF" />
+	</g>
+
+	<path fill="#FFFFFF" d="M382 264 642 512H382V264Z" />
+	<path fill="#1C98ED" d="M382 512h260v248L382 512Z" />
+
+	<g clip-path="url(#right-column)">
+		<path fill="#FFFFFF" d="M656 264h104v408L656 577V264Z" />
+		<path fill="#1C98ED" d="m656 577 104 95v88H656V577Z" />
+	</g>
+
+	<path fill="#232120" d="M264 352h62v14h-62z" />
+	<path fill="#232120" d="M264 454h62v14h-62z" />
+	<path fill="#232120" d="M264 556h62v14h-62z" />
+	<path fill="#232120" d="M264 658h62v14h-62z" />
+</svg>
