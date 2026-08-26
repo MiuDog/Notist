@@ -42,6 +42,7 @@ final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
   static const _frame = KrepisDisplayFrame(1, []);
 
   int backspaceCount = 0;
+  int paragraphBreakCount = 0;
   int redoCount = 0;
   int duplicateCount = 0;
   int markdownPasteCount = 0;
@@ -134,7 +135,9 @@ final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
   void commitComposition(int timestamp) {}
 
   @override
-  void insertParagraphBreak(int timestamp) {}
+  void insertParagraphBreak(int timestamp) {
+    paragraphBreakCount += 1;
+  }
 
   @override
   void insertText(String text, {required int timestamp, required int group}) {

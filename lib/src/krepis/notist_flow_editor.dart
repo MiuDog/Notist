@@ -60,6 +60,7 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
   var _openGeneration = 0;
   var _opening = true;
   bool _compositionActive = false;
+  int? _paragraphBreakRevisionAwaitingAction;
   bool _slashMenuOpen = false;
   String? _draggedBlockId;
   String? _dropTargetBlockId;
@@ -1100,6 +1101,13 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
       );
       if (inserted == '\n' && range.prefix == range.oldEnd) {
         controller.insertParagraphBreak(_now());
+        final revision = controller.snapshot!.contentRevision;
+        _paragraphBreakRevisionAwaitingAction = revision;
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_paragraphBreakRevisionAwaitingAction == revision) {
+            _paragraphBreakRevisionAwaitingAction = null;
+          }
+        });
       } else {
         controller.insertText(inserted, timestamp: _now(), group: 1);
       }
@@ -1120,6 +1128,11 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
   @override
   void performAction(TextInputAction action) {
     if (action != TextInputAction.newline || _controller == null) return;
+    final revision = _controller!.snapshot!.contentRevision;
+    if (_paragraphBreakRevisionAwaitingAction == revision) {
+      _paragraphBreakRevisionAwaitingAction = null;
+      return;
+    }
     try {
       _controller!.insertParagraphBreak(_now());
       _syncFromAuthority();

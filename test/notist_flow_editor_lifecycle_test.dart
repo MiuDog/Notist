@@ -137,6 +137,31 @@ void main() {
     expect(authority.redoCount, 1);
   });
 
+  testWidgets('Windows newline update and action insert one block', (
+    tester,
+  ) async {
+    final authority = KeyboardKrepisAuthority();
+    await pumpEditor(tester, opener: (request) async => authority);
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('notist-krepis-flow-editor')));
+
+    tester.testTextInput.updateEditingValue(
+      const TextEditingValue(
+        text: 'abc\n',
+        selection: TextSelection.collapsed(offset: 4),
+      ),
+    );
+    await tester.testTextInput.receiveAction(TextInputAction.newline);
+    await tester.pump();
+
+    expect(authority.paragraphBreakCount, 1);
+
+    await tester.testTextInput.receiveAction(TextInputAction.newline);
+    await tester.pump();
+
+    expect(authority.paragraphBreakCount, 2);
+  });
+
   testWidgets('Control V imports clipboard Markdown through Krepis', (
     tester,
   ) async {
