@@ -121,13 +121,26 @@ void main() {
       await pumpAtPreviewSize(tester);
 
       final navButtons = find.byType(KlpSidebarNavigationButton);
-      expect(navButtons, findsNWidgets(3), reason: '版面稿第 196-198 行有三個導覽項目');
+      expect(navButtons, findsNWidgets(4), reason: '產品組合包含四個固定導覽入口');
 
       final first = tester.getRect(navButtons.first);
       expect(
         first.height,
         truth.navItemHeight,
         reason: '版面稿第 35 行 height:36px',
+      );
+
+      // 格子與字形是兩個值，必須分別量。只量 KlpIcon 量到的是字形——
+      // 拿字形去對格子的期望值，會讓「字形頂滿格子」這種缺陷通過測試。
+      final iconBox = find.descendant(
+        of: navButtons.first,
+        matching: find.byKey(const ValueKey(klpNavigationIconBoxKey)),
+      );
+      expect(iconBox, findsOneWidget, reason: '版面稿第 36 行每個導覽項目都有圖示格');
+      expect(
+        tester.getSize(iconBox).width,
+        truth.navItemIconBox,
+        reason: '版面稿第 36 行 width:20px;height:20px',
       );
 
       final icon = find.descendant(
@@ -137,11 +150,11 @@ void main() {
       expect(icon, findsOneWidget, reason: '版面稿第 36 行每個導覽項目都有圖示');
       expect(
         tester.getSize(icon).width,
-        truth.navItemIconBox,
-        reason: '版面稿第 36 行 width:20px;height:20px',
+        truth.navItemIconGlyph,
+        reason: '版面稿第 318 行 PlnIcon,{size:18}',
       );
 
-      final iconRect = tester.getRect(icon);
+      final iconRect = tester.getRect(iconBox);
       expect(
         iconRect.left - first.left,
         truth.navItemPaddingHorizontal,

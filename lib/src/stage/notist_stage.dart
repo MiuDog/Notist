@@ -9,7 +9,9 @@ import '../assets/notist_assets_page.dart';
 import '../assistant/notist_assistant_page.dart';
 import '../journal/notist_journals_page.dart';
 import '../project/notist_project_controller.dart';
+import '../search/notist_quick_search_page.dart';
 import '../shell/notist_stage_zone.dart';
+import '../shell/notist_session_state.dart';
 import '../shell/notist_workspace_destination.dart';
 import 'notist_flow_stage_actions.dart';
 import 'notist_project_page.dart';
@@ -25,6 +27,9 @@ class NotistStage extends StatelessWidget {
     this.onImportMarkdownFile,
     this.zone = NotistStageZone.document,
     this.destination = NotistWorkspaceDestination.journals,
+    this.startupBehavior = NotistStartupBehavior.restoreLast,
+    this.onStartupBehaviorChanged,
+    this.onDocumentOpen,
   });
 
   /// Stage 目前該顯示文件還是入口畫面。
@@ -37,6 +42,9 @@ class NotistStage extends StatelessWidget {
   final NotistFlowEditorBuilder? flowEditorBuilder;
   final NotistProjectController? projectController;
   final VoidCallback? onImportMarkdownFile;
+  final NotistStartupBehavior startupBehavior;
+  final ValueChanged<NotistStartupBehavior>? onStartupBehaviorChanged;
+  final ValueChanged<String>? onDocumentOpen;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +63,8 @@ class NotistStage extends StatelessWidget {
       flowEditorBuilder: flowEditorBuilder,
       projectController: projectController,
       onImportMarkdownFile: onImportMarkdownFile,
+      startupBehavior: startupBehavior,
+      onStartupBehaviorChanged: onStartupBehaviorChanged,
     );
   }
 
@@ -64,6 +74,11 @@ class NotistStage extends StatelessWidget {
   /// 那比塞假資料誠實：假資料會讓人以為功能已經接上了。
   Widget _buildDestination() {
     switch (destination) {
+      case NotistWorkspaceDestination.search:
+        return NotistQuickSearchPage(
+          documents: projectController?.documents ?? const [],
+          onOpen: onDocumentOpen ?? (_) {},
+        );
       case NotistWorkspaceDestination.journals:
         final now = DateTime.now();
         return NotistJournalsPage(
@@ -107,6 +122,8 @@ class _NotistProjectStageSession extends StatefulWidget {
     required this.flowEditorBuilder,
     required this.projectController,
     required this.onImportMarkdownFile,
+    required this.startupBehavior,
+    required this.onStartupBehaviorChanged,
   });
 
   final String flowPath;
@@ -115,6 +132,8 @@ class _NotistProjectStageSession extends StatefulWidget {
   final NotistFlowEditorBuilder? flowEditorBuilder;
   final NotistProjectController? projectController;
   final VoidCallback? onImportMarkdownFile;
+  final NotistStartupBehavior startupBehavior;
+  final ValueChanged<NotistStartupBehavior>? onStartupBehaviorChanged;
 
   @override
   State<_NotistProjectStageSession> createState() =>
@@ -126,6 +145,8 @@ class _NotistProjectStageSessionState
   final NotistLocalSaveController _saveProjection = NotistLocalSaveController();
   late int? _blockCount = widget.initialBlockCount;
   var _mode = NotistFlowStageMode.edit;
+  var _undoHistoryEvicted = false;
+  var _stylusDetected = false;
   final KlpContextMenuController _pageMenuController =
       KlpContextMenuController();
 
@@ -165,10 +186,19 @@ class _NotistProjectStageSessionState
                 enabled: widget.onImportMarkdownFile != null,
                 onPressed: widget.onImportMarkdownFile ?? () {},
               ),
+              KlpMenuItemData(
+                label:
+                    widget.startupBehavior == NotistStartupBehavior.restoreLast
+                    ? '啟動時使用初始狀態'
+                    : '啟動時保留上次狀態',
+                icon: KlpIcons.settings,
+                onPressed: _toggleStartupBehavior,
+              ),
             ],
             child: NotistFlowStageActions(
               mode: _mode,
               enabled: widget.flowPath.isNotEmpty,
+              showModeToggle: !_stylusDetected,
               onModeChanged: (mode) => setState(() => _mode = mode),
               onPageMenu: _openPageMenu,
             ),
@@ -186,6 +216,8 @@ class _NotistProjectStageSessionState
                     key: ValueKey(filePath),
                     filePath: filePath,
                     saveProjection: _saveProjection,
+                    inkEnabled: _mode == NotistFlowStageMode.ink,
+                    onStylusDetected: _handleStylusDetected,
                     onProjectionChanged: _handleProjection,
                   ),
             ),
@@ -197,6 +229,7 @@ class _NotistProjectStageSessionState
             state: state,
             blockCount: widget.flowPath.isEmpty ? null : _blockCount,
             onRetry: _saveProjection.retry == null ? null : _retrySave,
+            undoHistoryEvicted: _undoHistoryEvicted,
           ),
         ),
       ),
@@ -210,9 +243,25 @@ class _NotistProjectStageSessionState
     );
   }
 
+  void _handleStylusDetected() {
+    if (!_stylusDetected && mounted) setState(() => _stylusDetected = true);
+  }
+
+  void _toggleStartupBehavior() {
+    final next = widget.startupBehavior == NotistStartupBehavior.restoreLast
+        ? NotistStartupBehavior.initial
+        : NotistStartupBehavior.restoreLast;
+    widget.onStartupBehaviorChanged?.call(next);
+  }
+
   void _handleProjection(KrepisEditorSnapshot snapshot) {
-    if (mounted && _blockCount != snapshot.blockCount) {
-      setState(() => _blockCount = snapshot.blockCount);
+    if (mounted &&
+        (_blockCount != snapshot.blockCount ||
+            _undoHistoryEvicted != snapshot.undoHistoryEvicted)) {
+      setState(() {
+        _blockCount = snapshot.blockCount;
+        _undoHistoryEvicted = snapshot.undoHistoryEvicted;
+      });
     }
     widget.projectController?.updateProjection(
       rootId: snapshot.rootId,
