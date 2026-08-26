@@ -17,6 +17,7 @@ namespace {
 #endif
 
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
+constexpr int kResizeBorderLogicalPixels = 8;
 
 /// Registry key for app theme preference.
 ///
@@ -146,11 +147,26 @@ bool Win32Window::Create(const std::wstring& title,
 
   UpdateTheme(window);
 
+  // 移除系統標題列，但保留可調整大小的外框能力。
+  LONG_PTR style = GetWindowLongPtr(window, GWL_STYLE);
+  style &= ~WS_CAPTION;
+  style |= WS_THICKFRAME;
+  SetWindowLongPtr(window, GWL_STYLE, style);
+
+  MARGINS margins = {0, 0, 1, 0};
+  DwmExtendFrameIntoClientArea(window, &margins);
+
+  SetWindowPos(window, nullptr, 0, 0, 0, 0,
+               SWP_NOMOVE | SWP_NOSIZE | SWP_NOZORDER | SWP_FRAMECHANGED);
+
   return OnCreate();
 }
 
 bool Win32Window::Show() {
-  return ShowWindow(window_handle_, SW_SHOWNORMAL);
+  // 保留 KlpApp 在首幀前要求的最大化狀態，讓 Windows 依目前螢幕與 DPI 顯示。
+  const int show_command =
+      IsZoomed(window_handle_) ? SW_SHOWMAXIMIZED : SW_SHOWNORMAL;
+  return ShowWindow(window_handle_, show_command);
 }
 
 // static
@@ -158,6 +174,18 @@ LRESULT CALLBACK Win32Window::WndProc(HWND const window,
                                       UINT const message,
                                       WPARAM const wparam,
                                       LPARAM const lparam) noexcept {
+  if (message == WM_NCCALCSIZE && wparam == TRUE) {
+    if (IsZoomed(window)) {
+      auto* params = reinterpret_cast<NCCALCSIZE_PARAMS*>(lparam);
+      HMONITOR monitor = MonitorFromWindow(window, MONITOR_DEFAULTTONEAREST);
+      MONITORINFO monitor_info = {sizeof(MONITORINFO)};
+      if (GetMonitorInfo(monitor, &monitor_info)) {
+        params->rgrc[0] = monitor_info.rcWork;
+      }
+    }
+    return 0;
+  }
+
   if (message == WM_NCCREATE) {
     auto window_struct = reinterpret_cast<CREATESTRUCT*>(lparam);
     SetWindowLongPtr(window, GWLP_USERDATA,
@@ -213,12 +241,82 @@ Win32Window::MessageHandler(HWND hwnd,
       }
       return 0;
 
+    case WM_NCCALCSIZE: {
+      if (wparam == TRUE) {
+        return 0;
+      }
+      break;
+    }
+
+    case WM_GETMINMAXINFO: {
+      auto* min_max_info = reinterpret_cast<MINMAXINFO*>(lparam);
+      HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      MONITORINFO monitor_info = {sizeof(MONITORINFO)};
+
+      // 將頂層視窗限制在工作區，避免透明外框攔截 Windows 工作列事件。
+      if (GetMonitorInfo(monitor, &monitor_info)) {
+        const RECT& monitor_rect = monitor_info.rcMonitor;
+        const RECT& work_rect = monitor_info.rcWork;
+        min_max_info->ptMaxPosition.x = work_rect.left - monitor_rect.left;
+        min_max_info->ptMaxPosition.y = work_rect.top - monitor_rect.top;
+        min_max_info->ptMaxSize.x = work_rect.right - work_rect.left;
+        min_max_info->ptMaxSize.y = work_rect.bottom - work_rect.top;
+      }
+
+      UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      double scale_factor = dpi / 96.0;
+      if (min_width_ > 0) {
+        min_max_info->ptMinTrackSize.x =
+            static_cast<LONG>(min_width_ * scale_factor);
+      }
+      if (min_height_ > 0) {
+        min_max_info->ptMinTrackSize.y =
+            static_cast<LONG>(min_height_ * scale_factor);
+      }
+      return 0;
+    }
+
+    case WM_NCHITTEST: {
+      if (IsZoomed(hwnd)) {
+        return HTCLIENT;
+      }
+
+      POINT point = {static_cast<SHORT>(LOWORD(lparam)),
+                     static_cast<SHORT>(HIWORD(lparam))};
+      RECT rect;
+      GetWindowRect(hwnd, &rect);
+      HMONITOR monitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+      UINT dpi = FlutterDesktopGetDpiForMonitor(monitor);
+      const int border = Scale(kResizeBorderLogicalPixels, dpi / 96.0);
+
+      bool left = point.x >= rect.left && point.x < rect.left + border;
+      bool right = point.x < rect.right && point.x >= rect.right - border;
+      bool top = point.y >= rect.top && point.y < rect.top + border;
+      bool bottom = point.y < rect.bottom && point.y >= rect.bottom - border;
+
+      if (top && left) return HTTOPLEFT;
+      if (top && right) return HTTOPRIGHT;
+      if (bottom && left) return HTBOTTOMLEFT;
+      if (bottom && right) return HTBOTTOMRIGHT;
+      if (left) return HTLEFT;
+      if (right) return HTRIGHT;
+      if (top) return HTTOP;
+      if (bottom) return HTBOTTOM;
+
+      return HTCLIENT;
+    }
+
     case WM_DWMCOLORIZATIONCOLORCHANGED:
       UpdateTheme(hwnd);
       return 0;
   }
 
   return DefWindowProc(window_handle_, message, wparam, lparam);
+}
+
+void Win32Window::SetMinSize(int min_width, int min_height) {
+  min_width_ = min_width;
+  min_height_ = min_height;
 }
 
 void Win32Window::Destroy() {
