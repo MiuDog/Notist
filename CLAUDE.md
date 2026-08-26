@@ -1,4 +1,4 @@
-# Jotist
+# Notist
 
 **本專案的作業規範以 [`AGENTS.md`](AGENTS.md) 為唯一來源。開工前先讀那份。**
 
