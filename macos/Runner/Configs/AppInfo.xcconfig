@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = jotist
+PRODUCT_NAME = notist
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = io.github.miudog.jotist
+PRODUCT_BUNDLE_IDENTIFIER = io.github.miudog.notist
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 io.github.miudog. All rights reserved.

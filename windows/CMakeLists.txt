@@ -1,10 +1,10 @@
 # Project-level configuration.
 cmake_minimum_required(VERSION 3.14)
-project(jotist LANGUAGES CXX)
+project(notist LANGUAGES CXX)
 
 # The name of the executable created for the application. Change this to change
 # the on-disk name of your application.
-set(BINARY_NAME "jotist")
+set(BINARY_NAME "notist")
 
 # Explicitly opt in to modern CMake behaviors to avoid warnings with recent
 # versions of CMake.
@@ -49,6 +49,33 @@ endfunction()
 set(FLUTTER_MANAGED_DIR "${CMAKE_CURRENT_SOURCE_DIR}/flutter")
 add_subdirectory(${FLUTTER_MANAGED_DIR})
 
+# Krepis 是 Notist 的文件、版面與編輯 authority；只接受已核准的 immutable commit。
+# FetchContent 原生支援 FETCHCONTENT_SOURCE_DIR_KREPIS，供離線驗證使用；CI 與預設建置
+# 不設定該變數，因此不會依賴 sibling checkout。
+include(FetchContent)
+set(NOTIST_KREPIS_GIT_SHA
+  "546891bc2663105f87cdcf94da6513a6c051d1cf"
+)
+set(KREPIS_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  krepis
+  GIT_REPOSITORY "https://github.com/MiuDog/Krepis.git"
+  GIT_TAG "${NOTIST_KREPIS_GIT_SHA}"
+  GIT_SHALLOW FALSE
+  GIT_PROGRESS TRUE
+)
+FetchContent_MakeAvailable(krepis)
+
+# Dart bridge 只接受 Krepis ABI 1.8。版本不符必須在 configure 階段停止，不能等到
+# 使用者啟動 editor 才發現 DLL 與 FFI contract 不相容。
+file(READ "${krepis_SOURCE_DIR}/include/krepis/krepis_c.h" KREPIS_ABI_HEADER)
+if(NOT KREPIS_ABI_HEADER MATCHES "KREPIS_ABI_MAJOR[ \t]*=[ \t]*1,")
+  message(FATAL_ERROR "Notist requires Krepis ABI major 1")
+endif()
+if(NOT KREPIS_ABI_HEADER MATCHES "KREPIS_ABI_MINOR[ \t]*=[ \t]*8,")
+  message(FATAL_ERROR "Notist requires Krepis ABI minor 8")
+endif()
+
 # Application build; see runner/CMakeLists.txt.
 add_subdirectory("runner")
 
@@ -73,6 +100,8 @@ set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}")
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
+  COMPONENT Runtime)
+install(TARGETS krepis_c RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)
 
 install(FILES "${FLUTTER_ICU_DATA_FILE}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"

@@ -1,4 +1,4 @@
-package io.github.miudog.jotist
+package io.github.miudog.notist
 
 import io.flutter.embedding.android.FlutterActivity
 
