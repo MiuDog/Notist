@@ -36,8 +36,8 @@ class NotistSidebar extends StatelessWidget {
       header: KlpSidebarIdentityHeader(
         icon: KlpIcons.folder,
         title: 'Flows',
-        avatarLabel: 'C',
-        avatarSemanticLabel: 'Chia-Yu',
+        avatarLabel: 'N',
+        avatarSemanticLabel: 'Notist 工作區',
       ),
       navigation: KlpSidebarNavigationGroup(
         children: [
