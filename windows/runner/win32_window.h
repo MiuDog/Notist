@@ -55,6 +55,9 @@ class Win32Window {
   // Return a RECT representing the bounds of the current client area.
   RECT GetClientArea();
 
+  // 設定視窗可追蹤的最小尺寸。
+  void SetMinSize(int min_width, int min_height);
+
  protected:
   // Processes and route salient window messages for mouse handling,
   // size change and DPI. Delegates handling of these to member overloads that
@@ -97,6 +100,9 @@ class Win32Window {
 
   // window handle for hosted content.
   HWND child_content_ = nullptr;
+
+  int min_width_ = 0;
+  int min_height_ = 0;
 };
 
 #endif  // RUNNER_WIN32_WINDOW_H_
