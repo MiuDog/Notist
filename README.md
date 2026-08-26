@@ -5,6 +5,10 @@
 Notist 面向需要自由筆記的學生、開發者與一般使用者。它以單一文件工作區開始，逐步提供
 專案搜尋、排程統整、資產管理、AI 統整與可核准的工具操作；長期可成為專案計畫的真實來源。
 
+目前版本為 `0.1.0-beta.1+1` Windows x64 Private Prerelease。受邀測試者請從
+[GitHub Releases](https://github.com/MiuDog/Notist/releases) 下載 ZIP，並在執行前核對隨附的
+SHA-256；此版本未簽章、不適合正式環境或唯一資料副本。
+
 ## 這個專案為什麼存在
 
 Notist 是 [Krepis](https://github.com/MiuDog/Krepis) 筆記核心的**第一個產品消費者**，它有三個作用：
@@ -51,10 +55,21 @@ Windows 桌面是第一驗收平台；Linux、macOS、Android、iOS runner 目�
 C:\development\flutter\bin\flutter.bat doctor -v
 ```
 
+## 安裝 Private Beta
+
+1. 從 [GitHub Releases](https://github.com/MiuDog/Notist/releases) 下載
+   `Notist-0.1.0-beta.1-windows-x64.zip` 與同名 `.sha256`。
+2. 依 [`docs/releases/0.1.0-beta.1.md`](docs/releases/0.1.0-beta.1.md) 核對 SHA-256。
+3. 將 ZIP 完整解壓縮到可寫入的資料夾；不要直接在壓縮檔內啟動。
+4. 執行 `notist.exe`。未簽章警告是此 Private Beta 的已知限制，檔案 hash 不符時不得執行。
+
+Krepis 核心採 MiuDog 專有私人 Beta 評估授權，完整本文與所有第三方授權均隨 ZIP 提供；
+不得將 Private Beta 成品轉散布、用於正式環境或商業用途。
+
 ## 從原始碼建置
 
-Wave A 候選版仍使用相鄰的 `Kallopis` 與 `Krepis` 工作副本。這是本機驗證用接入，
-不是可重現發行契約；Wave B 必須改為人類核准的固定 Git ref 後才能發布 Beta。
+發行候選固定使用 Kallopis `ee42c3854d12cd7b4100b7b61697c90c938ce570` 與 Krepis
+`546891bc2663105f87cdcf94da6513a6c051d1cf`，由正式 GitHub URL 取得，不依賴 sibling checkout。
 
 ```powershell
 C:\development\flutter\bin\flutter.bat pub get
@@ -96,5 +111,5 @@ pwsh.exe -NoProfile -ExecutionPolicy Bypass -File tool/verify.ps1
 
 ## 狀態
 
-目前準備 `0.1.0-beta.1+1` Windows Private Prerelease。Wave A 只整理產品 metadata 與文件；
-固定 provider 依賴、乾淨 CI、發行 ZIP 與實機發行驗收尚待 Wave B 完成。
+`0.1.0-beta.1+1` Windows Private Prerelease 已完成固定 provider、發布級自動測試、Release build、
+授權封裝、checksum 與封裝成品實機啟動驗證。其他平台與正式環境仍不在本版支援範圍。
