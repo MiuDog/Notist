@@ -7,6 +7,7 @@ import '../sidebar/notist_sidebar.dart';
 import '../stage/notist_project_page.dart';
 import '../stage/notist_stage.dart';
 import 'notist_workbench_controller.dart';
+import 'notist_session_state.dart';
 
 /// Notist 絕對 golden 的兩欄工作台。
 class NotistWorkbench extends StatefulWidget {
@@ -19,6 +20,7 @@ class NotistWorkbench extends StatefulWidget {
     this.workbenchController,
     this.markdownFileIntent,
     this.startupFilePaths = const [],
+    this.sessionStore,
   });
 
   final String flowFilePath;
@@ -28,6 +30,7 @@ class NotistWorkbench extends StatefulWidget {
   final NotistWorkbenchController? workbenchController;
   final NotistMarkdownFileIntent? markdownFileIntent;
   final List<String> startupFilePaths;
+  final NotistSessionStore? sessionStore;
 
   @override
   State<NotistWorkbench> createState() => _NotistWorkbenchState();
@@ -40,6 +43,9 @@ class _NotistWorkbenchState extends State<NotistWorkbench> {
   var _ownsProjectController = false;
   late final NotistMarkdownFileIntent _markdownFileIntent;
   late final bool _ownsMarkdownFileIntent;
+  NotistSessionStore? _sessionStore;
+  var _restoringSession = true;
+  Future<void>? _saveSessionOperation;
 
   @override
   void initState() {
@@ -57,14 +63,21 @@ class _NotistWorkbenchState extends State<NotistWorkbench> {
       );
       _ownsProjectController = true;
     }
+    _sessionStore =
+        widget.sessionStore ??
+        (widget.projectDirectoryPath.isEmpty
+            ? null
+            : NotistLocalSessionStore(widget.projectDirectoryPath));
+    _workbenchController.addListener(_persistSession);
+    _projectController?.addListener(_persistSession);
     _markdownFileIntent.listen(_importMarkdownPaths);
-    _projectController?.load().then(
-      (_) => _importMarkdownPaths(widget.startupFilePaths),
-    );
+    _restoreSession();
   }
 
   @override
   void dispose() {
+    _workbenchController.removeListener(_persistSession);
+    _projectController?.removeListener(_persistSession);
     if (_ownsProjectController) _projectController?.dispose();
     if (_ownsMarkdownFileIntent) _markdownFileIntent.dispose();
     if (_ownsWorkbenchController) _workbenchController.dispose();
@@ -92,6 +105,7 @@ class _NotistWorkbenchState extends State<NotistWorkbench> {
         zone: _workbenchController.zone,
         selectedDestination: _workbenchController.destination,
         onDestinationSelected: _workbenchController.selectDestination,
+        onDocumentSelected: (_) => _workbenchController.showDocument(),
       ),
       stage: NotistStage(
         zone: _workbenchController.zone,
@@ -100,6 +114,9 @@ class _NotistWorkbenchState extends State<NotistWorkbench> {
         flowEditorBuilder: widget.flowEditorBuilder,
         projectController: projectController,
         onImportMarkdownFile: _pickMarkdownFile,
+        startupBehavior: _workbenchController.startupBehavior,
+        onStartupBehaviorChanged: _workbenchController.setStartupBehavior,
+        onDocumentOpen: _openDocument,
       ),
       secondaryVisible: false,
       secondary: const SizedBox.shrink(),
@@ -111,6 +128,11 @@ class _NotistWorkbenchState extends State<NotistWorkbench> {
     if (path != null) await _importMarkdownPaths([path]);
   }
 
+  void _openDocument(String rootId) {
+    _projectController?.select(rootId);
+    _workbenchController.showDocument();
+  }
+
   Future<void> _importMarkdownPaths(List<String> paths) async {
     final project = _projectController;
     if (project == null) return;
@@ -118,5 +140,49 @@ class _NotistWorkbenchState extends State<NotistWorkbench> {
     for (final path in paths) {
       await project.importMarkdownFile(path);
     }
+  }
+
+  Future<void> _restoreSession() async {
+    final project = _projectController;
+    if (project != null) await project.load();
+    final session = await _sessionStore?.load();
+    if (!mounted) return;
+    if (session != null) {
+      _workbenchController.restore(session);
+      final rootId = session.selectedRootId;
+      if (session.startupBehavior == NotistStartupBehavior.restoreLast &&
+          rootId != null &&
+          project != null &&
+          project.documents.any((document) => document.rootId == rootId)) {
+        project.select(rootId);
+      }
+    }
+    _restoringSession = false;
+    await _importMarkdownPaths(widget.startupFilePaths);
+  }
+
+  void _persistSession() {
+    final store = _sessionStore;
+    if (_restoringSession || store == null) return;
+    final snapshot = NotistSessionState(
+      startupBehavior: _workbenchController.startupBehavior,
+      primaryVisible: _workbenchController.primaryVisible,
+      primaryWidth: _workbenchController.primaryWidth,
+      zone: _workbenchController.zone,
+      destination: _workbenchController.destination,
+      selectedRootId: _projectController?.selectedRootId,
+    );
+    final prior = _saveSessionOperation;
+    late final Future<void> operation;
+    operation =
+        (() async {
+          if (prior != null) await prior;
+          await store.save(snapshot);
+        })().whenComplete(() {
+          if (identical(_saveSessionOperation, operation)) {
+            _saveSessionOperation = null;
+          }
+        });
+    _saveSessionOperation = operation;
   }
 }
