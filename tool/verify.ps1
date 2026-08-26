@@ -1,12 +1,45 @@
-$ErrorActionPreference = 'Stop'
+[CmdletBinding()]
+param(
+	[string] $FlutterPath = $env:NOTIST_FLUTTER,
 
-$flutterBin = 'C:\development\flutter\bin'
+	[switch] $BuildWindowsRelease
+)
+
+$ErrorActionPreference = 'Stop'
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-$krepisRoot = (Resolve-Path -LiteralPath (Join-Path $projectRoot '..\Krepis')).Path
+
+function Resolve-FlutterPath {
+	param([string] $RequestedPath)
+
+	$candidates = @()
+	if ($RequestedPath) {
+		$candidates += $RequestedPath
+	}
+	if ($env:FLUTTER_ROOT) {
+		$candidates += (Join-Path $env:FLUTTER_ROOT 'bin\flutter.bat')
+	}
+	$fromPath = Get-Command flutter -ErrorAction SilentlyContinue
+	if ($fromPath) {
+		$candidates += $fromPath.Source
+	}
+
+	foreach ($candidate in $candidates) {
+		if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+			return (Resolve-Path -LiteralPath $candidate).Path
+		}
+	}
+
+	throw '找不到 Flutter。請設定 NOTIST_FLUTTER、FLUTTER_ROOT，或將 flutter 加入 PATH。'
+}
+
+$flutterExe = Resolve-FlutterPath -RequestedPath $FlutterPath
+$flutterBin = Split-Path -Parent $flutterExe
 $dartExe = Join-Path $flutterBin 'cache\dart-sdk\bin\dart.exe'
-$flutterTool = Join-Path $flutterBin 'cache\flutter_tools.snapshot'
-$cmakeExe = 'C:\Program Files (x86)\Microsoft Visual Studio\2022\BuildTools\Common7\IDE\CommonExtensions\Microsoft\CMake\CMake\bin\cmake.exe'
-$krepisNativeDir = Join-Path $krepisRoot 'build\msvc-x64\Debug'
+$krepisNativeDir = Join-Path $projectRoot 'build\windows\x64\runner\Debug'
+
+if (!(Test-Path -LiteralPath $dartExe -PathType Leaf)) {
+	throw "Flutter SDK 缺少 Dart executable：$dartExe"
+}
 
 function Invoke-VerifyStep {
 	param(
@@ -46,6 +79,18 @@ Invoke-VerifyStep -Name '發行 metadata 檢查' -Executable 'pwsh.exe' -Argumen
 	'-File',
 	(Join-Path $PSScriptRoot 'check_release_metadata.ps1')
 )
+Invoke-VerifyStep -Name 'Provider pin 檢查' -Executable 'pwsh.exe' -Arguments @(
+	'-NoProfile',
+	'-ExecutionPolicy',
+	'Bypass',
+	'-File',
+	(Join-Path $PSScriptRoot 'check_provider_pins.ps1')
+)
+Invoke-VerifyStep -Name '鎖定相依解析' -Executable $flutterExe -Arguments @(
+	'pub',
+	'get',
+	'--enforce-lockfile'
+)
 Invoke-VerifyStep -Name '格式檢查' -Executable $dartExe -Arguments @(
 	'format',
 	'--output=none',
@@ -53,27 +98,33 @@ Invoke-VerifyStep -Name '格式檢查' -Executable $dartExe -Arguments @(
 	'lib',
 	'test'
 )
-Invoke-VerifyStep -Name '靜態分析' -Executable $dartExe -Arguments @(
-	$flutterTool,
+Invoke-VerifyStep -Name '靜態分析' -Executable $flutterExe -Arguments @(
 	'analyze',
-	'--fatal-infos'
+	'--fatal-infos',
+	'lib',
+	'test'
 )
-Invoke-VerifyStep -Name 'Krepis ABI 設定' -Executable $cmakeExe -Arguments @(
-	'--preset',
-	'msvc-x64'
-) -WorkingDirectory $krepisRoot
-Invoke-VerifyStep -Name 'Krepis ABI 建置' -Executable $cmakeExe -Arguments @(
-	'--build',
-	'build/msvc-x64',
-	'--config',
-	'Debug',
-	'--target',
-	'krepis_c'
-) -WorkingDirectory $krepisRoot
+Invoke-VerifyStep -Name 'Windows Debug 與 Krepis ABI 建置' -Executable $flutterExe -Arguments @(
+	'build',
+	'windows',
+	'--debug'
+)
+
+$krepisDll = Join-Path $krepisNativeDir 'krepis_c.dll'
+if (!(Test-Path -LiteralPath $krepisDll -PathType Leaf)) {
+	throw "Windows Debug 建置未產生 Krepis runtime：$krepisDll"
+}
 
 $env:NOTIST_KREPIS_NATIVE_TEST = '1'
 $env:Path = "$krepisNativeDir;$env:Path"
-Invoke-VerifyStep -Name '測試' -Executable $dartExe -Arguments @(
-	$flutterTool,
+Invoke-VerifyStep -Name '測試' -Executable $flutterExe -Arguments @(
 	'test'
 )
+
+if ($BuildWindowsRelease) {
+	Invoke-VerifyStep -Name 'Windows Release 建置' -Executable $flutterExe -Arguments @(
+		'build',
+		'windows',
+		'--release'
+	)
+}
