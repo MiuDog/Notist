@@ -8,7 +8,7 @@ import 'package:notist/src/sidebar/notist_sidebar_explorer.dart';
 import 'package:notist/src/stage/notist_stage.dart';
 
 void main() {
-  const destinations = ['Journals', 'Notist AI', '資產庫'];
+  const destinations = ['快速搜尋', 'Journals', 'Notist AI', '資產庫'];
 
   Future<void> pumpWorkbench(WidgetTester tester) async {
     tester.view.physicalSize = const Size(1600, 1200);
@@ -43,7 +43,7 @@ void main() {
         .toList();
   }
 
-  testWidgets('renders three full-width sidebar destinations', (tester) async {
+  testWidgets('renders four full-width sidebar destinations', (tester) async {
     await pumpWorkbench(tester);
 
     expect(find.byType(NotistWorkbench), findsOneWidget);

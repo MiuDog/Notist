@@ -14,6 +14,7 @@ class NotistSidebar extends StatelessWidget {
     required this.onDestinationSelected,
     this.zone = NotistStageZone.destination,
     this.projectController,
+    this.onDocumentSelected,
   });
 
   /// Stage 目前顯示哪一類內容。
@@ -25,6 +26,7 @@ class NotistSidebar extends StatelessWidget {
   final NotistWorkspaceDestination selectedDestination;
   final ValueChanged<NotistWorkspaceDestination> onDestinationSelected;
   final NotistProjectController? projectController;
+  final ValueChanged<String>? onDocumentSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -49,7 +51,10 @@ class NotistSidebar extends StatelessWidget {
             ),
         ],
       ),
-      explorer: NotistSidebarExplorer(controller: projectController),
+      explorer: NotistSidebarExplorer(
+        controller: projectController,
+        onDocumentSelected: onDocumentSelected,
+      ),
       footer: Align(
         alignment: Alignment.centerLeft,
         child: KlpStatusIndicator(
@@ -77,6 +82,7 @@ class _DestinationButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return KlpSidebarNavigationButton(
       icon: switch (destination) {
+        NotistWorkspaceDestination.search => KlpIcons.search,
         NotistWorkspaceDestination.journals => KlpIcons.clipboard,
         NotistWorkspaceDestination.ai => KlpIcons.sparkles,
         NotistWorkspaceDestination.assets => KlpIcons.archive,
