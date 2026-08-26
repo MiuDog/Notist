@@ -92,7 +92,6 @@ const double navItemGap = 12;
 const double navItemSpacing = 2;
 
 /// 導覽項目圖示格的尺寸。稿件第 36、43 行 `width:20px;height:20px`。
-const double navItemIconBox = 20;
 
 /// 導覽項目圖示**字形**的尺寸。稿件第 318 行 `PlnIcon,{size:18}`。
 ///

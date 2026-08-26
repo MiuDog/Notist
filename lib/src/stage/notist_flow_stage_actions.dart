@@ -54,8 +54,6 @@ class NotistFlowStageActions extends StatelessWidget {
           icon: KlpIcons.menu,
           label: '頁面選單',
           onPressed: onPageMenu,
-          // 這顆按鈕嵌在 Stage 標題列上，不是浮在空白處的獨立控制項。
-          tone: KlpIconButtonTone.inline,
         ),
       ],
     );

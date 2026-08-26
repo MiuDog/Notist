@@ -36,14 +36,7 @@ dependencies:
   kallopis:
     git:
       url: https://github.com/MiuDog/Kallopis.git
-      ref: v0.7.0
-
-# 本機開發用：Kallopis 的新元件尚未發版時，讓建置指向工作副本。
-# **發版後必須移除**——留著會讓 Notist 的建置依賴另一個 repo 的工作狀態，
-# 而那個狀態不在版本控制的保證範圍內。
-dependency_overrides:
-  kallopis:
-    path: ../Kallopis
+      ref: 465c5fec9a2fb5691c7ca7388d61744a1e847def
 
 dev_dependencies:
   flutter_test:
