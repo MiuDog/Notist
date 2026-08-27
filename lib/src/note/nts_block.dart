@@ -129,7 +129,7 @@ class NtsBlockCanvas extends StatelessWidget {
 /// 兩者刻意不同：佔滿版面高度讓相鄰 Block 的點擊區連續無縫，區塊之間不會有
 /// 選不到的死區；而選取框若跟著畫滿，框就會比文字高一個間距，看起來像文字
 /// 上浮、每個區塊佔了兩行。
-class NtsBlockChrome extends StatelessWidget {
+class NtsBlockChrome extends StatefulWidget {
   const NtsBlockChrome({
     super.key,
     required this.contentLeft,
@@ -157,53 +157,60 @@ class NtsBlockChrome extends StatelessWidget {
   final GestureDragUpdateCallback? onHandleDragUpdate;
   final GestureDragEndCallback? onHandleDragEnd;
 
+  @override
+  State<NtsBlockChrome> createState() => _NtsBlockChromeState();
+}
+
+class _NtsBlockChromeState extends State<NtsBlockChrome> {
+  bool _hovered = false;
+
   void _handlePressed(Offset anchor) {
-    onSelected();
-    onHandlePressed(anchor);
+    widget.onSelected();
+    widget.onHandlePressed(anchor);
   }
 
   @override
   Widget build(BuildContext context) {
     final klp = context.klp;
-    final handleLeft = (contentLeft - klp.space.iconButton - klp.space.tight)
-        .clamp(0.0, double.infinity);
+    final handleLeft =
+        (widget.contentLeft - klp.space.iconButton - klp.space.tight).clamp(
+          0.0,
+          double.infinity,
+        );
 
-    return Stack(
+    // 握把只在指標停在這個區塊上、或該區塊被選取時出現。
+    //
+    // 先前是常駐顯示，結果空白區塊看起來就是一排光禿禿的握把——文件還沒開始寫，
+    // 畫面上已經有五個控制項在搶注意力。
+    final showHandle = _hovered || widget.selected;
+
+    final chrome = Stack(
       clipBehavior: Clip.none,
       children: [
-        if (selected)
+        // 選取的填色由編輯器畫在原生內容底下（見 _buildSelectionUnderlay）。
+        // 這裡不畫邊框：準則 §2.1 的選取是填色，第 5 條又禁止 accent 用於選取，
+        // 而先前這裡正是用 accent 畫了一圈實線。
+        if (showHandle)
           Positioned(
-            left: contentLeft,
-            width: contentWidth,
+            left: handleLeft,
             top: 0,
-            // 視覺高度，不是 `bottom: 0`——後者會把框拉滿含間距的版面高度。
-            height: visualHeight,
-            child: IgnorePointer(
-              child: DecoratedBox(
-                key: const ValueKey('nts-block-selection-outline'),
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: context.klpColors.interaction,
-                    width: klp.shape.stroke,
-                  ),
-                  borderRadius: BorderRadius.circular(klp.shape.control),
-                ),
-              ),
+            child: _NtsBlockHandle(
+              key: const ValueKey('nts-block-chrome-handle'),
+              label: widget.handleLabel,
+              onPressed: _handlePressed,
+              onDragStart: widget.onHandleDragStart,
+              onDragUpdate: widget.onHandleDragUpdate,
+              onDragEnd: widget.onHandleDragEnd,
             ),
           ),
-        Positioned(
-          left: handleLeft,
-          top: 0,
-          child: _NtsBlockHandle(
-            key: const ValueKey('nts-block-chrome-handle'),
-            label: handleLabel,
-            onPressed: _handlePressed,
-            onDragStart: onHandleDragStart,
-            onDragUpdate: onHandleDragUpdate,
-            onDragEnd: onHandleDragEnd,
-          ),
-        ),
       ],
+    );
+
+    // hover 只在 desktop 有意義；觸控裝置上握把由選取狀態決定。
+    return MouseRegion(
+      onEnter: (_) => setState(() => _hovered = true),
+      onExit: (_) => setState(() => _hovered = false),
+      child: chrome,
     );
   }
 }

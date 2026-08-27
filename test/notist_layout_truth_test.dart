@@ -5,6 +5,7 @@ import 'package:notist/main.dart';
 import 'package:notist/src/shell/notist_workbench.dart';
 import 'package:notist/src/shell/notist_workbench_controller.dart';
 import 'package:notist/src/sidebar/notist_sidebar.dart';
+import 'package:notist/src/stage/notist_project_page.dart';
 import 'package:notist/src/stage/notist_stage.dart';
 
 import 'layout_truth/notist_layout_truth.dart' as truth;
@@ -202,11 +203,36 @@ void main() {
   });
 
   group('Stage', () {
-    testWidgets('文件內容的最大寬度是 ${truth.docMaxWidth}', (tester) async {
+    testWidgets('有 PlnStageFrame', (tester) async {
       await pumpAtPreviewSize(tester);
+      expect(find.byType(KlpStageFrame), findsOneWidget);
+    });
 
-      final stage = find.byType(KlpStageFrame);
-      expect(stage, findsOneWidget, reason: '版面稿第 75 行有 PlnStageFrame');
+    // 這條原本只檢查 KlpStageFrame 存在，名字卻寫「最大寬度是 780」——
+    // 名字像在驗證、實際什麼都沒驗。實機跑起來文字欄橫跨整個 stage，
+    // 而測試照樣全綠。這裡改成真的量。
+    testWidgets('文件內容欄不超過 ${truth.docMaxWidth}', (tester) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: buildKlpTheme(Brightness.light),
+          home: Scaffold(
+            body: NotistProjectPage(
+              filePath: 'probe.flow',
+              editorBuilder: (context, filePath) =>
+                  const SizedBox.expand(key: ValueKey('probe-editor')),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        tester.getSize(find.byKey(const ValueKey('probe-editor'))).width,
+        lessThanOrEqualTo(truth.docMaxWidth),
+        reason:
+            '版面稿第 78 行 max-width:780px。文字欄過寬會讓眼睛在換行時'
+            '找不到下一行的開頭。',
+      );
     });
   });
 

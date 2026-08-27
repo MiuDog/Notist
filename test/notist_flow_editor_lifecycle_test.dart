@@ -175,7 +175,9 @@ void main() {
     expect(authority.plainTextPasteCount, 1);
   });
 
-  testWidgets('選取框只畫到視覺高度，chrome 仍佔滿版面高度', (tester) async {
+  // 選取現在是**填色**而非邊框（準則 §2.1），且畫在原生內容底下——但「只畫到視覺
+  // 高度」這條規則不變：畫滿版面高度會讓色塊比文字高一個間距，看起來像文字上浮。
+  testWidgets('選取填色只畫到視覺高度，chrome 仍佔滿版面高度', (tester) async {
     final authority = KeyboardKrepisAuthority();
     await pumpEditor(tester, opener: (request) async => authority);
     await tester.pump();
@@ -183,7 +185,9 @@ void main() {
     final chrome = find.byKey(
       const ValueKey('notist-flow-block-00000000000000000000000000000002'),
     );
-    final outline = find.byKey(const ValueKey('nts-block-selection-outline'));
+    final outline = find.byKey(
+      const ValueKey('notist-flow-selection-00000000000000000000000000000002'),
+    );
     expect(chrome, findsOneWidget);
     expect(outline, findsOneWidget);
 
@@ -196,7 +200,7 @@ void main() {
       outlineHeight,
       24,
       reason:
-          '選取框只到視覺高度——畫滿版面高度會讓框比文字高一個間距，'
+          '選取填色只到視覺高度——畫滿版面高度會讓色塊比文字高一個間距，'
           '看起來像文字上浮、每個區塊佔兩行',
     );
     expect(
@@ -218,7 +222,11 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.byKey(const ValueKey('nts-block-selection-outline')),
+      find.byKey(
+        const ValueKey(
+          'notist-flow-selection-00000000000000000000000000000002',
+        ),
+      ),
       findsOneWidget,
     );
 

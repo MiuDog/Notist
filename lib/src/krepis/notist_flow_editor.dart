@@ -356,6 +356,9 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
         child: Stack(
           fit: StackFit.expand,
           children: [
+            // 選取填色畫在原生文字**之前**。準則 §2.1 的選取是填色而非邊框，
+            // 而文字是由 CustomPaint 畫的——填色若放在它之後會整片蓋掉內容。
+            ..._buildSelectionUnderlay(controller, size),
             CustomPaint(
               key: const ValueKey('notist-krepis-flow-editor'),
               painter: _KrepisDisplayPainter(controller, frame),
@@ -373,6 +376,55 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
         ),
       ),
     );
+  }
+
+  /// 選取區塊的填色層。
+  ///
+  /// 與 [_buildBlockChrome] 用同一組矩形，但畫在原生內容底下——準則 §2.1 的選取
+  /// 是填色，而填色疊在文字上會蓋掉它。
+  Iterable<Widget> _buildSelectionUnderlay(
+    KrepisEditorAuthority controller,
+    Size size,
+  ) sync* {
+    final snapshot = controller.snapshot!;
+    final fallback = snapshot.blocks.firstWhere(
+      (block) => block.position == snapshot.blockPosition,
+    );
+    final selectedRange = resolveNotistFlowSelectionRange(
+      snapshot.blocks,
+      snapshot.selection,
+      fallback,
+    );
+    final klp = context.klp;
+    final viewport = Offset.zero & size;
+
+    for (final block in snapshot.blocks) {
+      if (!selectedRange.contains(block)) continue;
+
+      final rect = controller.blockRect(block.position, size, _scrollY);
+      if (!rect.overlaps(viewport)) continue;
+      final visualRect = controller.blockVisualRect(
+        block.position,
+        size,
+        _scrollY,
+      );
+
+      yield Positioned(
+        key: ValueKey('notist-flow-selection-${block.id}'),
+        left: rect.left,
+        top: rect.top,
+        width: rect.width,
+        height: visualRect.height,
+        child: IgnorePointer(
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: klp.selectedSurface,
+              borderRadius: BorderRadius.circular(klp.shape.control),
+            ),
+          ),
+        ),
+      );
+    }
   }
 
   Iterable<Widget> _buildBlockChrome(
