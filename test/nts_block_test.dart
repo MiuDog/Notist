@@ -32,9 +32,15 @@ void main() {
       ),
     );
 
+    // 斷言的是行為（hover 有回饋），不是 Kallopis 的內部節點 key。
+    // 先前這裡綁死 'klp-pressable-state-highlight'，Kallopis 一改實作就紅——
+    // 那不是回歸，是耦合。
     expect(
-      find.byKey(const ValueKey('klp-pressable-state-highlight')),
-      findsNothing,
+      tester
+          .widgetList<KlpStateHighlight>(find.byType(KlpStateHighlight))
+          .every((highlight) => highlight.state == KlpHighlightState.none),
+      isTrue,
+      reason: '靜止時不該有任何狀態呈現',
     );
 
     final mouse = await tester.createGesture(kind: PointerDeviceKind.mouse);
@@ -45,8 +51,11 @@ void main() {
 
     expect(hoverStates, contains(true));
     expect(
-      find.byKey(const ValueKey('klp-pressable-state-highlight')),
-      findsOneWidget,
+      tester
+          .widgetList<KlpStateHighlight>(find.byType(KlpStateHighlight))
+          .any((highlight) => highlight.state != KlpHighlightState.none),
+      isTrue,
+      reason: 'hover 必須有視覺回饋——手法由 Kallopis 決定，這裡只驗證它存在',
     );
 
     await tester.tap(find.text('一般段落'));

@@ -68,7 +68,7 @@ Krepis 核心採 MiuDog 專有私人 Beta 評估授權，完整本文與所有�
 
 ## 從原始碼建置
 
-發行候選固定使用 Kallopis `ee42c3854d12cd7b4100b7b61697c90c938ce570` 與 Krepis
+目前 `main` 固定使用 Kallopis `9d8b2d078b1c6750d2220d212be4d19626b094ad` 與 Krepis
 `546891bc2663105f87cdcf94da6513a6c051d1cf`，由正式 GitHub URL 取得，不依賴 sibling checkout。
 
 ```powershell
