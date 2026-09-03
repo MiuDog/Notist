@@ -78,6 +78,11 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "6.0.0"
+  flutter_localizations:
+    dependency: transitive
+    description: flutter
+    source: sdk
+    version: "0.0.0"
   flutter_svg:
     dependency: transitive
     description:
@@ -107,12 +112,20 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "4.1.2"
+  intl:
+    dependency: transitive
+    description:
+      name: intl
+      sha256: "3df61194eb431efc39c4ceba583b95633a403f46c9fd341e550ce0bfa50e9aa5"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.20.2"
   kallopis:
     dependency: "direct main"
     description:
       path: "."
-      ref: ee42c3854d12cd7b4100b7b61697c90c938ce570
-      resolved-ref: ee42c3854d12cd7b4100b7b61697c90c938ce570
+      ref: "9d8b2d078b1c6750d2220d212be4d19626b094ad"
+      resolved-ref: "9d8b2d078b1c6750d2220d212be4d19626b094ad"
       url: "https://github.com/MiuDog/Kallopis.git"
     source: git
     version: "0.8.0"

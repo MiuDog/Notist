@@ -1,7 +1,7 @@
 $ErrorActionPreference = 'Stop'
 
 $projectRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
-$kallopisSha = 'ee42c3854d12cd7b4100b7b61697c90c938ce570'
+$kallopisSha = '9d8b2d078b1c6750d2220d212be4d19626b094ad'
 $krepisSha = '546891bc2663105f87cdcf94da6513a6c051d1cf'
 $pubspec = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'pubspec.yaml')
 $lockfile = Get-Content -Raw -LiteralPath (Join-Path $projectRoot 'pubspec.lock')
