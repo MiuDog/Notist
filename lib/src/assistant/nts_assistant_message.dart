@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/foundation.dart';
 
 /// 一則與 Notist AI 的往來訊息。

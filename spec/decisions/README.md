@@ -13,6 +13,9 @@
 | [NTS-0004](NTS-0004-folder-acl-and-restricted-projection.md) | Proposed | Folder ACL 與受限內容投影 |
 | [NTS-0005](NTS-0005-ai-mcp-proposal-and-single-writer.md) | Proposed | AI／MCP proposal 與單一 writer |
 | [NTS-0006](NTS-0006-first-runtime-flow-and-markdown-import.md) | Accepted | 第一個正式 Flow runtime 與 Markdown 單向匯入邊界 |
+| [NTS-0007](NTS-0007-offline-conflict-comparison.md) | Accepted | 離線衝突雙版本比較與逐項裁決 |
+| [NTS-0008](NTS-0008-stage-title-wrapping.md) | Accepted | Stage 過長標題完整自動換行 |
+| [NTS-0009](NTS-0009-markdown-profile-and-toggle-shortcut.md) | Accepted | Markdown profile 與 `> ` 摺疊快捷例外 |
 
 ## Planist 來源快照
 

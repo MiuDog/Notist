@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -19,8 +23,6 @@ void main() {
         .listSync(recursive: true)
         .whereType<File>()
         .where((file) => file.path.endsWith('.dart'))
-        // catalog 是開發用的展示程式，不是產品畫面，不在這條分界內。
-        .where((file) => !file.path.replaceAll(r'\', '/').contains('/catalog/'))
         .toList();
   });
 
@@ -120,5 +122,21 @@ void main() {
           '風格一律由 Kallopis 繼承——要調整請用 copyWith 或 JSON 覆寫，'
           '以 Kallopis 出貨的風格為基底。',
     );
+  });
+
+  test('Notist 不保留 Kallopis 視覺別名與重複 Catalog', () {
+    expect(Directory('lib/src/note').existsSync(), isFalse);
+    expect(Directory('lib/catalog').existsSync(), isFalse);
+    expect(File('lib/notist.dart').existsSync(), isFalse);
+  });
+
+  test('摺疊控制只使用 Flaticon 字型圖示', () {
+    final source = File(
+      'lib/src/krepis/notist_flow_block_chrome.dart',
+    ).readAsStringSync();
+
+    expect(source, contains('KlpIcons.disclosureTriangle'));
+    expect(source, isNot(contains('▶')));
+    expect(source, isNot(contains('▼')));
   });
 }

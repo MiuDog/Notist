@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 
@@ -121,6 +125,7 @@ final class KrepisBlockAdapter {
         nestingDepth: value.nestingDepth,
         orderedStart: value.orderedStart,
         taskChecked: value.taskChecked != 0,
+        toggleCollapsed: value.toggleCollapsed != 0,
         text: _copyUtf8(
           (bytes, capacity, required) => _native.copyFlowBlock(
             _engine,

@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notist/src/markdown/notist_markdown_file_intent.dart';

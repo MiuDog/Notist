@@ -1,7 +1,11 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/widgets.dart';
 import 'package:kallopis/kallopis.dart';
-import 'package:notist/notist.dart';
 
+import '../components/note/notist_note_block_chrome.dart';
 import 'krepis_block.dart';
 import 'notist_block_command.dart';
 import 'notist_block_command_registry.dart';
@@ -19,13 +23,14 @@ final class NotistFlowBlockChrome extends StatefulWidget {
     this.onHandleDragStart,
     this.onHandleDragUpdate,
     this.onHandleDragEnd,
+    this.onToggleCollapsed,
   });
 
   final KrepisFlowBlockProjection block;
   final double contentLeft;
   final double contentWidth;
 
-  /// 內容高度，不含區塊間距。見 [NtsBlockChrome.visualHeight]。
+  /// 內容高度，不含區塊間距。見 [NotistNoteBlockChrome.visualHeight]。
   final double visualHeight;
   final bool selected;
   final VoidCallback onSelected;
@@ -33,6 +38,7 @@ final class NotistFlowBlockChrome extends StatefulWidget {
   final GestureDragStartCallback? onHandleDragStart;
   final GestureDragUpdateCallback? onHandleDragUpdate;
   final GestureDragEndCallback? onHandleDragEnd;
+  final VoidCallback? onToggleCollapsed;
 
   @override
   State<NotistFlowBlockChrome> createState() => _NotistFlowBlockChromeState();
@@ -54,17 +60,49 @@ final class _NotistFlowBlockChromeState extends State<NotistFlowBlockChrome> {
         ))
           _menuItem(command),
       ],
-      child: NtsBlockChrome(
-        contentLeft: widget.contentLeft,
-        contentWidth: widget.contentWidth,
-        visualHeight: widget.visualHeight,
-        selected: widget.selected,
-        handleLabel: '$label 區塊操作',
-        onHandlePressed: _menuController.openAt,
-        onSelected: widget.onSelected,
-        onHandleDragStart: widget.onHandleDragStart,
-        onHandleDragUpdate: widget.onHandleDragUpdate,
-        onHandleDragEnd: widget.onHandleDragEnd,
+      child: Stack(
+        children: [
+          NotistNoteBlockChrome(
+            contentLeft: widget.contentLeft,
+            contentWidth: widget.contentWidth,
+            visualHeight: widget.visualHeight,
+            selected: widget.selected,
+            handleLabel: '$label 區塊操作',
+            onHandlePressed: _menuController.openAt,
+            onSelected: widget.onSelected,
+            onHandleDragStart: widget.onHandleDragStart,
+            onHandleDragUpdate: widget.onHandleDragUpdate,
+            onHandleDragEnd: widget.onHandleDragEnd,
+          ),
+          if (widget.block.kind == KrepisFlowBlockKind.toggleListItem)
+            Positioned(
+              left:
+                  widget.contentLeft -
+                  context.klp.space.iconBase -
+                  context.klp.space.tight,
+              top: context.klp.space.hairline * 2,
+              child: GestureDetector(
+                key: ValueKey('notist-toggle-${widget.block.id}'),
+                behavior: HitTestBehavior.opaque,
+                onTap: widget.onToggleCollapsed,
+                child: Semantics(
+                  button: true,
+                  label: widget.block.toggleCollapsed ? '展開摺疊內容' : '收合摺疊內容',
+                  child: Padding(
+                    padding: EdgeInsets.all(context.klp.space.hairline),
+                    child: RotatedBox(
+                      quarterTurns: widget.block.toggleCollapsed ? 0 : 1,
+                      child: KlpIcon(
+                        KlpIcons.disclosureTriangle,
+                        size: context.klp.space.iconSmall,
+                        weight: KlpIconWeight.thin,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
       ),
     );
   }
@@ -85,7 +123,7 @@ final class _NotistFlowBlockChromeState extends State<NotistFlowBlockChrome> {
     );
   }
 
-  String _iconFor(NotistBlockCommandId id) {
+  KlpIconData _iconFor(NotistBlockCommandId id) {
     return switch (id) {
       NotistBlockCommandId.duplicate => KlpIcons.clipboard,
       NotistBlockCommandId.moveUp ||
@@ -115,6 +153,9 @@ final class _NotistFlowBlockChromeState extends State<NotistFlowBlockChrome> {
       KrepisFlowBlockKind.blockQuote => '引用',
       KrepisFlowBlockKind.codeBlock => '程式碼',
       KrepisFlowBlockKind.thematicBreak => '分隔線',
+      KrepisFlowBlockKind.comment => 'Markdown 註解',
+      KrepisFlowBlockKind.toggleListItem => '摺疊內容',
+      KrepisFlowBlockKind.mathBlock => '數學公式',
     };
   }
 }

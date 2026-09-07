@@ -1,4 +1,9 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notist/src/markdown/notist_markdown_file_source.dart';
@@ -264,6 +269,347 @@ void main() {
     },
   );
 
+  test(
+    'load failure from stale revision keeps last stable projection',
+    () async {
+      final store = _MemoryProjectStore(['good.krdf']);
+      final controller = NotistProjectController(
+        store: store,
+        loader: (path, initialTitle) async {
+          if (path == 'stale.krdf') {
+            throw StateError('stale revision: 2 -> 3');
+          }
+          return NotistFlowDocument(
+            rootId: 'root-good',
+            title: '既有 Flow',
+            filePath: path,
+          );
+        },
+      );
+
+      await controller.load();
+      expect(controller.state, NotistProjectLoadState.ready);
+      expect(controller.documents.map((document) => document.rootId), [
+        'root-good',
+      ]);
+      expect(controller.selectedRootId, 'root-good');
+
+      store.paths
+        ..clear()
+        ..addAll(['good.krdf', 'stale.krdf']);
+
+      await controller.load();
+
+      expect(controller.state, NotistProjectLoadState.failed);
+      expect(controller.error, isA<StateError>());
+      expect(
+        (controller.error as StateError).message,
+        contains('stale revision'),
+      );
+      expect(controller.documents.map((document) => document.rootId), [
+        'root-good',
+      ]);
+      expect(controller.selectedRootId, 'root-good');
+    },
+  );
+
+  test('load failure from corrupt source keeps previous documents', () async {
+    final store = _MemoryProjectStore(['good.krdf']);
+    final controller = NotistProjectController(
+      store: store,
+      loader: (path, initialTitle) async {
+        if (path == 'corrupt.krdf') {
+          throw FormatException('corrupt krdf payload');
+        }
+        return NotistFlowDocument(
+          rootId: 'root-good',
+          title: '既有 Flow',
+          filePath: path,
+        );
+      },
+    );
+
+    await controller.load();
+    expect(controller.state, NotistProjectLoadState.ready);
+    expect(controller.documents.map((document) => document.rootId), [
+      'root-good',
+    ]);
+
+    store.paths
+      ..clear()
+      ..addAll(['good.krdf', 'corrupt.krdf']);
+
+    await controller.load();
+
+    expect(controller.state, NotistProjectLoadState.failed);
+    expect(controller.error, isA<FormatException>());
+    expect(controller.documents.map((document) => document.rootId), [
+      'root-good',
+    ]);
+  });
+
+  test(
+    'load failure from missing source keeps prior state available',
+    () async {
+      final store = _MemoryProjectStore(['good.krdf']);
+      final controller = NotistProjectController(
+        store: store,
+        loader: (path, initialTitle) async {
+          if (path == 'missing.krdf') {
+            throw const FileSystemException('source file missing');
+          }
+          return NotistFlowDocument(
+            rootId: 'root-good',
+            title: '既有 Flow',
+            filePath: path,
+          );
+        },
+      );
+
+      await controller.load();
+      expect(controller.state, NotistProjectLoadState.ready);
+      expect(controller.documents.map((document) => document.rootId), [
+        'root-good',
+      ]);
+
+      store.paths
+        ..clear()
+        ..addAll(['good.krdf', 'missing.krdf']);
+
+      await controller.load();
+
+      expect(controller.state, NotistProjectLoadState.failed);
+      expect(controller.error, isA<FileSystemException>());
+      expect(controller.documents.map((document) => document.rootId), [
+        'root-good',
+      ]);
+    },
+  );
+
+  test('loads pin state from persisted session data', () async {
+    final projectDirectory = await Directory.systemTemp.createTemp(
+      'notist-project-controller-load-pin-state-',
+    );
+    try {
+      final stateFile = File(
+        '${projectDirectory.path}${Platform.pathSeparator}.notist-notes-session.json',
+      );
+      await stateFile.writeAsString('{"pinnedRootIds":["root-a"]}');
+      final store = NotistLocalProjectStore(projectDirectory.path);
+      final flowPath =
+          '${projectDirectory.path}${Platform.pathSeparator}root.krdf';
+      await File(flowPath).writeAsString('flow');
+      final controller = NotistProjectController(
+        store: store,
+        loader: (path, initialTitle) async => NotistFlowDocument(
+          rootId: 'root-a',
+          title: 'A Flow',
+          filePath: path,
+        ),
+      );
+
+      await controller.load();
+
+      expect(controller.documents.single.isPinned, isTrue);
+    } finally {
+      if (await projectDirectory.exists()) {
+        await projectDirectory.delete(recursive: true);
+      }
+    }
+  });
+
+  test('ignores invalid pin session data and keeps load functional', () async {
+    final projectDirectory = await Directory.systemTemp.createTemp(
+      'notist-project-controller-load-pin-state-bad-',
+    );
+    try {
+      final stateFile = File(
+        '${projectDirectory.path}${Platform.pathSeparator}.notist-notes-session.json',
+      );
+      await stateFile.writeAsString('{invalid-json}');
+      final store = NotistLocalProjectStore(projectDirectory.path);
+      final flowPath =
+          '${projectDirectory.path}${Platform.pathSeparator}root.krdf';
+      await File(flowPath).writeAsString('flow');
+      final controller = NotistProjectController(
+        store: store,
+        loader: (path, initialTitle) async => NotistFlowDocument(
+          rootId: 'root-a',
+          title: 'A Flow',
+          filePath: path,
+        ),
+      );
+
+      await controller.load();
+
+      expect(controller.state, NotistProjectLoadState.ready);
+      expect(controller.documents.single.isPinned, isFalse);
+    } finally {
+      if (await projectDirectory.exists()) {
+        await projectDirectory.delete(recursive: true);
+      }
+    }
+  });
+
+  test(
+    'keeps pin projection and session state on pin persistence failure',
+    () async {
+      final projectDirectory = await Directory.systemTemp.createTemp(
+        'notist-project-controller-setpin-fail-',
+      );
+      try {
+        final flowPath =
+            '${projectDirectory.path}${Platform.pathSeparator}root.krdf';
+        await File(flowPath).writeAsString('flow');
+        final store = NotistLocalProjectStore(projectDirectory.path);
+        final controller = NotistProjectController(
+          store: store,
+          loader: (path, initialTitle) async => NotistFlowDocument(
+            rootId: 'root-a',
+            title: 'A Flow',
+            filePath: path,
+          ),
+        );
+
+        await controller.load();
+
+        final blockedStateTmp = Directory(
+          '${projectDirectory.path}${Platform.pathSeparator}.notist-notes-session.json.tmp',
+        );
+        await blockedStateTmp.create();
+
+        await controller.setPin('root-a', true);
+
+        expect(controller.setPinError, isA<FileSystemException>());
+        expect(controller.documents.single.isPinned, isFalse);
+        expect(controller.pinnedRootIds, isEmpty);
+        expect(await File(flowPath).exists(), isTrue);
+      } finally {
+        if (await projectDirectory.exists()) {
+          await projectDirectory.delete(recursive: true);
+        }
+      }
+    },
+  );
+
+  test('clears stale setPin error on no-op setPin', () async {
+    final projectDirectory = await Directory.systemTemp.createTemp(
+      'notist-project-controller-setpin-noop-',
+    );
+    try {
+      final flowPath =
+          '${projectDirectory.path}${Platform.pathSeparator}root.krdf';
+      await File(flowPath).writeAsString('flow');
+      final controller = NotistProjectController(
+        store: NotistLocalProjectStore(projectDirectory.path),
+        loader: (path, initialTitle) async => NotistFlowDocument(
+          rootId: 'root-a',
+          title: 'A Flow',
+          filePath: path,
+        ),
+      );
+
+      await controller.load();
+      await controller.setPin('root-a', true);
+      expect(controller.documents.single.isPinned, isTrue);
+
+      final blockedStateTmp = Directory(
+        '${projectDirectory.path}${Platform.pathSeparator}.notist-notes-session.json.tmp',
+      );
+      await blockedStateTmp.create();
+      await controller.setPin('root-a', false);
+      expect(controller.setPinError, isA<FileSystemException>());
+
+      await controller.setPin('root-a', true);
+      expect(controller.setPinError, isNull);
+      expect(controller.documents.single.isPinned, isTrue);
+    } finally {
+      if (await projectDirectory.exists()) {
+        await projectDirectory.delete(recursive: true);
+      }
+    }
+  });
+
+  test('keeps documents and file when delete persistence fails', () async {
+    final projectDirectory = await Directory.systemTemp.createTemp(
+      'notist-project-controller-delete-fail-',
+    );
+    try {
+      final flowPath =
+          '${projectDirectory.path}${Platform.pathSeparator}root.krdf';
+      await File(flowPath).writeAsString('flow');
+      final store = NotistLocalProjectStore(projectDirectory.path);
+      final controller = NotistProjectController(
+        store: store,
+        loader: (path, initialTitle) async => NotistFlowDocument(
+          rootId: 'root-a',
+          title: 'A Flow',
+          filePath: path,
+        ),
+      );
+
+      await controller.load();
+
+      final blockedStateTmp = Directory(
+        '${projectDirectory.path}${Platform.pathSeparator}.notist-notes-session.json.tmp',
+      );
+      await blockedStateTmp.create();
+
+      await controller.deleteFlow('root-a');
+
+      expect(controller.deleteError, isA<FileSystemException>());
+      expect(controller.documents.map((document) => document.rootId), [
+        'root-a',
+      ]);
+      expect(controller.pinnedRootIds, isEmpty);
+      expect(await File(flowPath).exists(), isTrue);
+    } finally {
+      if (await projectDirectory.exists()) {
+        await projectDirectory.delete(recursive: true);
+      }
+    }
+  });
+
+  test(
+    'keeps projection on move failure and can clear move error on no-op',
+    () async {
+      final projectDirectory = await Directory.systemTemp.createTemp(
+        'notist-project-controller-move-fail-',
+      );
+      try {
+        final flowPath =
+            '${projectDirectory.path}${Platform.pathSeparator}root.krdf';
+        await File(flowPath).writeAsString('flow');
+        final store = NotistLocalProjectStore(projectDirectory.path);
+        final controller = NotistProjectController(
+          store: store,
+          loader: (path, initialTitle) async => NotistFlowDocument(
+            rootId: 'root-a',
+            title: 'A Flow',
+            filePath: path,
+          ),
+        );
+
+        await controller.load();
+        expect(controller.moveError, isNull);
+
+        await controller.moveFlow('root-a', '不存在的資料夾');
+        expect(controller.moveError, isA<ArgumentError>());
+        expect(controller.documents.single.filePath, flowPath);
+        expect(controller.selectedRootId, 'root-a');
+        expect(await File(flowPath).exists(), isTrue);
+
+        await controller.moveFlow('root-a', null);
+        expect(controller.moveError, isNull);
+        expect(controller.documents.single.filePath, flowPath);
+      } finally {
+        if (await projectDirectory.exists()) {
+          await projectDirectory.delete(recursive: true);
+        }
+      }
+    },
+  );
+
   test('rejects duplicate roots before publishing load results', () async {
     final controller = NotistProjectController(
       store: _MemoryProjectStore(['a.krdf', 'b.krdf']),
@@ -299,6 +645,8 @@ void main() {
 final class _MemoryProjectStore implements NotistProjectStore {
   _MemoryProjectStore(this.paths, {this.folders = const []});
 
+  @override
+  final String directoryPath = '';
   final List<String> paths;
   final List<String> folders;
   Completer<List<String>>? pendingPaths;

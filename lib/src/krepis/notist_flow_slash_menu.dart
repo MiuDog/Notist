@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/widgets.dart';
 import 'package:kallopis/kallopis.dart';
 

@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:ffi' as ffi;
 
 import 'package:ffi/ffi.dart';

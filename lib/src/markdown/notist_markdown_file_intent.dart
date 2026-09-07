@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/services.dart';
 
 typedef NotistMarkdownPathsHandler = Future<void> Function(List<String> paths);

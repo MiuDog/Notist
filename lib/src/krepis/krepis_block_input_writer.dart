@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 
@@ -53,7 +57,7 @@ abstract final class KrepisBlockInputWriter {
     target.nestingDepth = source.nestingDepth;
     target.orderedStart = source.orderedStart;
     target.taskChecked = source.taskChecked ? 1 : 0;
-    target.reserved = 0;
+    target.toggleCollapsed = source.toggleCollapsed ? 1 : 0;
     target.utf8 = text.pointer;
     target.utf8Size = text.length;
     target.infoUtf8 = info.pointer;

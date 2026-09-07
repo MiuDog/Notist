@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kallopis/kallopis.dart';
@@ -35,7 +39,7 @@ void main() {
     await tester.pump();
 
     expect(find.byType(NotistWorkbench), findsNothing);
-    expect(find.text('無法開啟本機 Flow 專案'), findsOneWidget);
+    expect(find.text('無法開啟本機專案'), findsOneWidget);
     expect(find.byType(KlpErrorState), findsOneWidget);
   });
 }

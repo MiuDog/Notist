@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:io';
 
 final class NotistStoredFlow {
@@ -8,6 +12,7 @@ final class NotistStoredFlow {
 }
 
 abstract interface class NotistProjectStore {
+  String get directoryPath;
   Future<List<NotistStoredFlow>> listFlows();
   Future<List<String>> listFolderPaths();
   Future<String> allocateFlowPath({String? folderPath});
@@ -16,27 +21,53 @@ abstract interface class NotistProjectStore {
 final class NotistLocalProjectStore implements NotistProjectStore {
   NotistLocalProjectStore(this.directoryPath);
 
+  @override
   final String directoryPath;
 
   @override
   Future<List<NotistStoredFlow>> listFlows() async {
     final directory = Directory(directoryPath).absolute;
     await directory.create(recursive: true);
-    final flows = await directory
-        .list(recursive: true, followLinks: false)
-        .where((entity) => entity is File && entity.path.endsWith('.krdf'))
-        .map(
-          (entity) => NotistStoredFlow(
-            filePath: entity.path,
-            folderPath: _relativeFolderPath(
-              directory,
-              File(entity.path).parent,
-            ),
-          ),
-        )
+    final flowEntities = <NotistStoredFlow>[];
+
+    final rootEntries = await directory.list(followLinks: false).toList();
+    for (final entity in rootEntries) {
+      if (entity is File && entity.path.endsWith('.krdf')) {
+        flowEntities.add(
+          NotistStoredFlow(filePath: entity.path, folderPath: ''),
+        );
+      }
+    }
+
+    final folderEntries = await directory
+        .list(followLinks: false)
+        .where((entity) => entity is Directory)
         .toList();
-    flows.sort((left, right) => left.filePath.compareTo(right.filePath));
-    return flows;
+    for (final entity in folderEntries) {
+      final directoryName = _directoryName(entity.path);
+      if (directoryName.startsWith('.')) continue;
+
+      final folder = Directory(entity.path);
+      final flowsInFolder = await folder
+          .list(followLinks: false)
+          .where(
+            (nested) =>
+                nested is File &&
+                nested.path.endsWith('.krdf') &&
+                nested.existsSync(),
+          )
+          .map(
+            (nested) => NotistStoredFlow(
+              filePath: nested.path,
+              folderPath: directoryName,
+            ),
+          )
+          .toList();
+      flowEntities.addAll(flowsInFolder);
+    }
+
+    flowEntities.sort((left, right) => left.filePath.compareTo(right.filePath));
+    return flowEntities;
   }
 
   @override
@@ -44,12 +75,19 @@ final class NotistLocalProjectStore implements NotistProjectStore {
     final directory = Directory(directoryPath).absolute;
     await directory.create(recursive: true);
     final paths = await directory
-        .list(recursive: true, followLinks: false)
+        .list(followLinks: false)
         .where((entity) => entity is Directory)
-        .map((entity) => _relativeFolderPath(directory, Directory(entity.path)))
+        .map((entity) => _directoryName(entity.path))
+        .where((name) => name.isNotEmpty && !name.startsWith('.'))
         .toList();
-    paths.sort();
-    return paths;
+    final singleLayer = <String>[];
+    for (final path in paths) {
+      if (!path.contains('/')) {
+        singleLayer.add(path);
+      }
+    }
+    singleLayer.sort();
+    return singleLayer;
   }
 
   @override
@@ -80,6 +118,12 @@ final class NotistLocalProjectStore implements NotistProjectStore {
     }
   }
 
+  String _directoryName(String path) {
+    final index = path.lastIndexOf(Platform.pathSeparator);
+    if (index >= 0) return path.substring(index + 1);
+    return path;
+  }
+
   String _normalizeFolderPath(String? folderPath) {
     if (folderPath == null || folderPath.isEmpty) return '';
     if (folderPath.startsWith('/') ||
@@ -93,18 +137,10 @@ final class NotistLocalProjectStore implements NotistProjectStore {
     )) {
       throw ArgumentError.value(folderPath, 'folderPath', '不得離開專案根目錄');
     }
+    if (segments.length != 1) {
+      throw ArgumentError.value(folderPath, 'folderPath', '目前僅支援單層資料夾');
+    }
     return segments.join('/');
-  }
-
-  String _relativeFolderPath(Directory root, Directory folder) {
-    if (folder.path == root.path) return '';
-    final offset = root.path.endsWith(Platform.pathSeparator)
-        ? root.path.length
-        : root.path.length + 1;
-    return folder.path
-        .substring(offset)
-        .split(Platform.pathSeparator)
-        .join('/');
   }
 
   Future<void> _verifyInsideProject(Directory root, Directory folder) async {

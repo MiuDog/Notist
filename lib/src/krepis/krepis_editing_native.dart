@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:ffi' as ffi;
 
 final class KrepisTextEndpointNative extends ffi.Struct {
@@ -85,7 +89,7 @@ final class KrepisFlowBlockAttributesInputNative extends ffi.Struct {
   external int taskChecked;
 
   @ffi.Uint32()
-  external int reserved;
+  external int toggleCollapsed;
 
   external ffi.Pointer<ffi.Uint8> infoUtf8;
 
@@ -107,6 +111,8 @@ final class KrepisCommandApplicabilityNative extends ffi.Struct {
 typedef KrepisGetTextSelection =
     int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<KrepisTextSelectionNative>);
 typedef KrepisSetTextSelection =
+    int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<KrepisTextSelectionNative>);
+typedef KrepisSetBlockSelection =
     int Function(ffi.Pointer<ffi.Void>, ffi.Pointer<KrepisTextSelectionNative>);
 typedef KrepisMoveFlowBlockRange =
     int Function(
@@ -130,6 +136,8 @@ typedef KrepisGetCommandApplicability =
       ffi.Pointer<ffi.Void>,
       ffi.Pointer<KrepisCommandApplicabilityNative>,
     );
+typedef KrepisApplyToggleShortcut =
+    int Function(ffi.Pointer<ffi.Void>, int, int, ffi.Pointer<ffi.Uint32>);
 
 typedef KrepisGetTextSelectionNative =
     ffi.Uint32 Function(
@@ -137,6 +145,11 @@ typedef KrepisGetTextSelectionNative =
       ffi.Pointer<KrepisTextSelectionNative>,
     );
 typedef KrepisSetTextSelectionNative =
+    ffi.Uint32 Function(
+      ffi.Pointer<ffi.Void>,
+      ffi.Pointer<KrepisTextSelectionNative>,
+    );
+typedef KrepisSetBlockSelectionNative =
     ffi.Uint32 Function(
       ffi.Pointer<ffi.Void>,
       ffi.Pointer<KrepisTextSelectionNative>,
@@ -162,4 +175,11 @@ typedef KrepisGetCommandApplicabilityNative =
     ffi.Uint32 Function(
       ffi.Pointer<ffi.Void>,
       ffi.Pointer<KrepisCommandApplicabilityNative>,
+    );
+typedef KrepisApplyToggleShortcutNative =
+    ffi.Uint32 Function(
+      ffi.Pointer<ffi.Void>,
+      ffi.Uint64,
+      ffi.Uint64,
+      ffi.Pointer<ffi.Uint32>,
     );

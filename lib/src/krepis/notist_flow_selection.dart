@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'krepis_block.dart';
 import 'krepis_editing.dart';
 

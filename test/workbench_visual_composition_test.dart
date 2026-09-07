@@ -1,7 +1,12 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kallopis/kallopis.dart';
 import 'package:notist/main.dart';
+import 'package:notist/src/shell/notist_workbench_controller.dart';
 import 'package:notist/src/sidebar/notist_sidebar.dart';
 
 void main() {
@@ -15,14 +20,24 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('uses one Klp workbench window header', (tester) async {
+  Finder railItem(Pattern label) {
+    return find.descendant(
+      of: find.byType(KlpNavigationRail),
+      matching: find.bySemanticsLabel(label),
+    );
+  }
+
+  testWidgets('uses the Klp app window header', (tester) async {
     await pumpApp(tester);
 
-    expect(find.byType(KlpWorkbenchWindowHeader), findsOneWidget);
+    expect(find.byType(KlpWorkbenchWindowHeader), findsNothing);
     expect(find.byType(KlpWindowHeader), findsOneWidget);
-    final headerFinder = find.byType(KlpWorkbenchWindowHeader);
-    final layout = tester.element(headerFinder).klp.geometry.layout;
-    expect(tester.getSize(headerFinder).height, layout.windowToolbarHeight);
+    final headerFinder = find.byType(KlpWindowHeader);
+    final klp = tester.element(headerFinder).klp;
+    expect(
+      tester.getSize(headerFinder).height,
+      klpWindowHeaderHeight(klp.geometry),
+    );
     expect(find.text('⌘K'), findsOneWidget);
   });
 
@@ -30,24 +45,46 @@ void main() {
     await pumpApp(tester);
 
     final sidebar = find.byType(NotistSidebar);
-    expect(tester.getSize(sidebar).width, 268);
+    final panel = find.ancestor(
+      of: sidebar,
+      matching: find.byType(KlpPanelFrame),
+    );
+    expect(
+      tester.getSize(panel).width,
+      NotistWorkbenchController.initialPrimaryWidth,
+    );
     expect(
       find.descendant(
         of: sidebar,
         matching: find.byType(KlpSidebarIdentityHeader),
       ),
-      findsOneWidget,
+      findsNothing,
     );
     expect(
       find.descendant(of: sidebar, matching: find.byType(KlpFileExplorer)),
       findsOneWidget,
     );
     expect(find.byType(KlpSegmentedControl), findsNothing);
-    expect(find.text('Flows'), findsWidgets);
-    expect(find.bySemanticsLabel('Journals'), findsOneWidget);
-    expect(find.bySemanticsLabel('Notist AI'), findsOneWidget);
-    expect(find.bySemanticsLabel('資產庫'), findsOneWidget);
-    expect(find.bySemanticsLabel('快速搜尋'), findsOneWidget);
+    expect(railItem(RegExp(r'^Project · ')), findsOneWidget);
+    expect(railItem('Notes'), findsOneWidget);
+    expect(railItem('Notist AI'), findsOneWidget);
+    expect(railItem('Account'), findsOneWidget);
+    expect(railItem('設定'), findsOneWidget);
+    expect(find.byType(KlpRailItem), findsNWidgets(5));
+  });
+
+  testWidgets('keeps 8px rail edges around a square rail item', (tester) async {
+    await pumpApp(tester);
+
+    final rail = find.byType(KlpNavigationRailFrame);
+    final item = find.byType(KlpRailItem).first;
+    final spacing = tester.element(rail).klp.space;
+
+    expect(tester.getSize(item).width, tester.getSize(item).height);
+    expect(
+      tester.getSize(rail).width,
+      spacing.chromeRail + (spacing.dockMargin * 2),
+    );
   });
 
   testWidgets('keeps the Flow stage chrome from the golden layout', (
@@ -55,31 +92,62 @@ void main() {
   ) async {
     await pumpApp(tester);
 
-    expect(find.byType(KlpStageHeader), findsOneWidget);
     expect(
-      find.byWidgetPredicate((widget) => widget is KlpPhaseToggle),
+      find.ancestor(
+        of: find.text('尚未選取專案'),
+        matching: find.byType(KlpPanelHeader),
+      ),
       findsOneWidget,
     );
-    expect(find.bySemanticsLabel('編輯模式'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((widget) => widget is KlpPhaseToggle),
+      findsNothing,
+    );
+    expect(find.bySemanticsLabel('唯讀'), findsOneWidget);
+    expect(find.bySemanticsLabel('編輯'), findsOneWidget);
+    expect(find.bySemanticsLabel('手寫（尚未提供）'), findsOneWidget);
     expect(find.bySemanticsLabel('頁面選單'), findsOneWidget);
-    expect(find.text('Flows'), findsWidgets);
-    expect(find.text('Flow'), findsWidgets);
-    expect(find.text('FLOW'), findsOneWidget);
     expect(find.text('本機'), findsWidgets);
-  });
 
-  testWidgets('collapses and restores the primary sidebar from the header', (
-    tester,
-  ) async {
-    await pumpApp(tester);
+    final stageHeader = find.byKey(const ValueKey('stage-panel-header-slot'));
+    final stagePanelHeader = find.descendant(
+      of: stageHeader,
+      matching: find.byType(KlpPanelHeader),
+    );
+    final sidebarHeader = find.ancestor(
+      of: find.text('Notes'),
+      matching: find.byType(KlpPanelHeader),
+    );
+    expect(
+      tester.getSize(stageHeader).height,
+      tester.getSize(sidebarHeader).height,
+    );
+    expect(
+      tester.widget<KlpPanelHeader>(stagePanelHeader).titleRole,
+      KlpTextRole.appTitle,
+    );
+    expect(
+      tester.widget<KlpText>(find.widgetWithText(KlpText, 'Notes')).role,
+      KlpTextRole.appTitle,
+    );
 
-    await tester.tap(find.bySemanticsLabel('收合側邊面板'));
-    await tester.pumpAndSettle();
-    expect(find.byType(NotistSidebar), findsNothing);
-    expect(find.byType(KlpStageFrame), findsOneWidget);
-
-    await tester.tap(find.bySemanticsLabel('展開側邊面板'));
-    await tester.pumpAndSettle();
-    expect(find.byType(NotistSidebar), findsOneWidget);
+    final actionButtons = <String>['唯讀', '編輯', '手寫（尚未提供）', '頁面選單'].map(
+      (label) => find.byWidgetPredicate(
+        (widget) => widget is KlpIconButton && widget.label == label,
+      ),
+    );
+    final actionButtonSizes = actionButtons.map(tester.getSize).toSet();
+    expect(actionButtonSizes, hasLength(1));
+    expect(
+      actionButtonSizes.single,
+      Size.square(tester.element(stageHeader).klp.space.iconButton),
+    );
+    final stageHeaderRect = tester.getRect(stageHeader);
+    for (final actionButton in actionButtons) {
+      expect(
+        stageHeaderRect.contains(tester.getRect(actionButton).center),
+        isTrue,
+      );
+    }
   });
 }

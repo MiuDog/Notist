@@ -18,7 +18,7 @@
         "@modelcontextprotocol/server-memory"
       ],
       "env": {
-        "MEMORY_FILE_PATH": "C:\\Projects\\Notist\\.agents\\mcp-memory.json"
+        "MEMORY_FILE_PATH": "C:\\Projects\\Jotist\\.agents\\mcp-memory.json"
       }
     },
     "context7": {

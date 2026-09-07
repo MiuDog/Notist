@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:convert';
 import 'dart:math' as math;
 
@@ -8,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:kallopis/kallopis.dart';
 
+import '../components/note/notist_note_ink_preview.dart';
 import 'krepis_block.dart';
 import 'krepis_display.dart';
 import 'krepis_editing.dart';
@@ -20,7 +25,7 @@ import 'notist_flow_block_chrome.dart';
 import 'notist_flow_slash_menu.dart';
 import 'notist_flow_selection.dart';
 import 'notist_local_save_projection.dart';
-import 'notist_ink_preview.dart';
+import 'notist_semantic_block_projection.dart';
 import 'text_edit_diff.dart';
 
 class NotistFlowEditor extends StatefulWidget {
@@ -31,7 +36,6 @@ class NotistFlowEditor extends StatefulWidget {
     this.saveProjection,
     this.onProjectionChanged,
     this.inkEnabled = false,
-    this.onStylusDetected,
   });
 
   final String filePath;
@@ -39,7 +43,6 @@ class NotistFlowEditor extends StatefulWidget {
   final NotistLocalSaveController? saveProjection;
   final ValueChanged<KrepisEditorSnapshot>? onProjectionChanged;
   final bool inkEnabled;
-  final VoidCallback? onStylusDetected;
 
   @override
   State<NotistFlowEditor> createState() => _NotistFlowEditorState();
@@ -357,17 +360,16 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // 選取填色畫在原生文字**之前**。準則 §2.1 的選取是填色而非邊框，
-            // 而文字是由 CustomPaint 畫的——填色若放在它之後會整片蓋掉內容。
-            ..._buildSelectionUnderlay(controller, size),
             CustomPaint(
               key: const ValueKey('notist-krepis-flow-editor'),
               painter: _KrepisDisplayPainter(controller, frame),
             ),
+            ..._buildTextSelectionProjection(controller, size),
+            ..._buildSemanticProjections(controller, size),
             ..._buildBlockChrome(controller, size),
             if (_currentInkOutline(controller).isNotEmpty &&
                 _inkOwnerRect != null)
-              NotistInkPreview(
+              NotistNoteInkPreview(
                 points: _inkOutline,
                 origin: _inkOwnerRect!.topLeft,
               ),
@@ -379,49 +381,64 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
     );
   }
 
-  /// 選取區塊的填色層。
-  ///
-  /// 與 [_buildBlockChrome] 用同一組矩形，但畫在原生內容底下——準則 §2.1 的選取
-  /// 是填色，而填色疊在文字上會蓋掉它。
-  Iterable<Widget> _buildSelectionUnderlay(
+  Iterable<Widget> _buildTextSelectionProjection(
     KrepisEditorAuthority controller,
     Size size,
   ) sync* {
     final snapshot = controller.snapshot!;
-    final fallback = snapshot.blocks.firstWhere(
-      (block) => block.position == snapshot.blockPosition,
-    );
-    final selectedRange = resolveNotistFlowSelectionRange(
-      snapshot.blocks,
-      snapshot.selection,
-      fallback,
-    );
-    final klp = context.klp;
+    final selection = snapshot.selection;
+    if (snapshot.selectionMode != KrepisSelectionMode.text ||
+        selection == null ||
+        selection.anchor == selection.focus) {
+      return;
+    }
+
+    List<Rect> rects;
+    try {
+      rects = controller.textSelectionRects(size, _scrollY);
+    } catch (error) {
+      // geometry 過期或 provider 尚未支援時，只清除暫態反白；authority snapshot 不變。
+      if (kDebugMode) debugPrint('Notist 清除無效文字選取 geometry：$error');
+      return;
+    }
     final viewport = Offset.zero & size;
-
-    for (final block in snapshot.blocks) {
-      if (!selectedRange.contains(block)) continue;
-
-      final rect = controller.blockRect(block.position, size, _scrollY);
-      if (!rect.overlaps(viewport)) continue;
-      final visualRect = controller.blockVisualRect(
-        block.position,
-        size,
-        _scrollY,
+    for (var index = 0; index < rects.length; index += 1) {
+      final rect = rects[index];
+      if (rect.isEmpty || !rect.overlaps(viewport)) continue;
+      yield Positioned.fromRect(
+        key: ValueKey('notist-text-selection-$index'),
+        rect: rect,
+        child: const IgnorePointer(
+          child: KlpStateHighlight(
+            state: KlpHighlightState.selected,
+            borderRadius: BorderRadius.zero,
+            child: SizedBox.expand(),
+          ),
+        ),
       );
+    }
+  }
+
+  Iterable<Widget> _buildSemanticProjections(
+    KrepisEditorAuthority controller,
+    Size size,
+  ) sync* {
+    final viewport = Offset.zero & size;
+    for (final block in controller.snapshot!.blocks) {
+      if (!NotistSemanticBlockProjection.supports(block)) continue;
+      final rect = controller.blockVisualRect(block.position, size, _scrollY);
+      if (!rect.overlaps(viewport)) continue;
 
       yield Positioned(
-        key: ValueKey('notist-flow-selection-${block.id}'),
+        key: ValueKey('notist-semantic-projection-${block.id}'),
         left: rect.left,
         top: rect.top,
         width: rect.width,
-        height: visualRect.height,
+        height: rect.height,
         child: IgnorePointer(
-          child: DecoratedBox(
-            decoration: BoxDecoration(
-              color: klp.selectedSurface,
-              borderRadius: BorderRadius.circular(klp.shape.control),
-            ),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: NotistSemanticBlockProjection(block: block),
           ),
         ),
       );
@@ -464,7 +481,9 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
           contentLeft: rect.left,
           contentWidth: rect.width,
           visualHeight: visualRect.height,
-          selected: selectedRange.contains(block),
+          selected:
+              snapshot.selectionMode == KrepisSelectionMode.blocks &&
+              selectedRange.contains(block),
           onSelected: () => _selectBlock(controller, block),
           registry: _commandsFor(controller, block),
           onHandleDragStart: (details) =>
@@ -472,6 +491,9 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
           onHandleDragUpdate: (details) =>
               _updateBlockDrag(controller, details),
           onHandleDragEnd: (details) => _finishBlockDrag(controller),
+          onToggleCollapsed: block.kind == KrepisFlowBlockKind.toggleListItem
+              ? () => _toggleCollapsed(controller, block)
+              : null,
         ),
       );
     }
@@ -565,13 +587,14 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
     final previous = snapshot.selection;
     final extendsSelection =
         HardwareKeyboard.instance.isShiftPressed &&
+        snapshot.selectionMode == KrepisSelectionMode.blocks &&
         previous?.contentRevision == snapshot.contentRevision;
     final endpoint = KrepisTextEndpointProjection(
       blockId: block.id,
       graphemeBoundary: 0,
       affinity: KrepisTextAffinity.downstream,
     );
-    controller.setStableSelection(
+    controller.setStableBlockSelection(
       KrepisTextSelectionProjection(
         contentRevision: snapshot.contentRevision,
         anchor: extendsSelection ? previous!.anchor : endpoint,
@@ -643,6 +666,22 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
     );
   }
 
+  void _toggleCollapsed(
+    KrepisEditorAuthority controller,
+    KrepisFlowBlockProjection block,
+  ) {
+    final snapshot = controller.snapshot!;
+    controller.convertFlowBlock(
+      expectedContentRevision: snapshot.contentRevision,
+      blockId: block.id,
+      attributes: KrepisFlowBlockAttributes.fromBlock(
+        block,
+        toggleCollapsed: !block.toggleCollapsed,
+      ),
+      timestamp: _now(),
+    );
+  }
+
   void _executeSlashCommand(
     KrepisEditorAuthority controller,
     NotistBlockCommand command,
@@ -664,11 +703,7 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
   }
 
   bool _shouldCaptureInk(PointerDownEvent event) {
-    final stylus =
-        event.kind == PointerDeviceKind.stylus ||
-        event.kind == PointerDeviceKind.invertedStylus;
-    if (stylus) widget.onStylusDetected?.call();
-    return widget.inkEnabled || stylus;
+    return widget.inkEnabled;
   }
 
   void _beginInk(KrepisEditorAuthority controller, PointerDownEvent event) {
@@ -857,7 +892,7 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
         graphemeBoundary: 0,
         affinity: KrepisTextAffinity.downstream,
       );
-      controller.setStableSelection(
+      controller.setStableBlockSelection(
         KrepisTextSelectionProjection(
           contentRevision: snapshot.contentRevision,
           anchor: endpoint,
@@ -1027,6 +1062,8 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
   AutofillScope? get currentAutofillScope => null;
 
   KeyEventResult _handleKeyEvent(FocusNode node, KeyEvent event) {
+    if (_compositionActive) return KeyEventResult.ignored;
+
     if (_slashMenuOpen &&
         event.logicalKey == LogicalKeyboardKey.escape &&
         event is KeyDownEvent) {
@@ -1035,10 +1072,33 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
     }
 
     final controller = _controller;
+    if (controller == null) return KeyEventResult.ignored;
+    final snapshot = controller.snapshot!;
+    final isDown = event is KeyDownEvent || event is KeyRepeatEvent;
+    if (isDown && event.logicalKey == LogicalKeyboardKey.escape) {
+      _handleEscapeSelection(controller, snapshot);
+      return KeyEventResult.handled;
+    }
+    if (isDown &&
+        snapshot.selectionMode == KrepisSelectionMode.blocks &&
+        event.logicalKey == LogicalKeyboardKey.enter) {
+      _returnBlockSelectionToText(controller, snapshot);
+      return KeyEventResult.handled;
+    }
+    if (isDown && snapshot.selectionMode == KrepisSelectionMode.blocks) {
+      if (event.logicalKey == LogicalKeyboardKey.arrowUp) {
+        _moveBlockSelectionFocus(controller, snapshot, -1);
+        return KeyEventResult.handled;
+      }
+      if (event.logicalKey == LogicalKeyboardKey.arrowDown) {
+        _moveBlockSelectionFocus(controller, snapshot, 1);
+        return KeyEventResult.handled;
+      }
+    }
     final handlesBackspace =
         event.logicalKey == LogicalKeyboardKey.backspace &&
         (event is KeyDownEvent || event is KeyRepeatEvent);
-    if (controller == null || !handlesBackspace || _compositionActive) {
+    if (!handlesBackspace) {
       return KeyEventResult.ignored;
     }
 
@@ -1050,6 +1110,108 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
       _recoverAfterIntentFailure('Backspace intent', error);
     }
     return KeyEventResult.handled;
+  }
+
+  void _handleEscapeSelection(
+    KrepisEditorAuthority controller,
+    KrepisEditorSnapshot snapshot,
+  ) {
+    try {
+      if (snapshot.selectionMode == KrepisSelectionMode.blocks) {
+        _returnBlockSelectionToText(controller, snapshot);
+      } else {
+        final block = snapshot.blocks.firstWhere(
+          (candidate) => candidate.position == snapshot.blockPosition,
+        );
+        final endpoint = KrepisTextEndpointProjection(
+          blockId: block.id,
+          graphemeBoundary: 0,
+          affinity: KrepisTextAffinity.downstream,
+        );
+        controller.setStableBlockSelection(
+          KrepisTextSelectionProjection(
+            contentRevision: snapshot.contentRevision,
+            anchor: endpoint,
+            focus: endpoint,
+          ),
+        );
+        _syncFromAuthority();
+        setState(() {});
+      }
+    } catch (error) {
+      _recoverAfterIntentFailure('Escape selection intent', error);
+    }
+  }
+
+  void _returnBlockSelectionToText(
+    KrepisEditorAuthority controller,
+    KrepisEditorSnapshot snapshot,
+  ) {
+    try {
+      final selection = snapshot.selection;
+      final fallback = snapshot.blocks.firstWhere(
+        (candidate) => candidate.position == snapshot.blockPosition,
+      );
+      final endpoint =
+          selection?.focus ??
+          KrepisTextEndpointProjection(
+            blockId: fallback.id,
+            graphemeBoundary: 0,
+            affinity: KrepisTextAffinity.downstream,
+          );
+      controller.setStableSelection(
+        KrepisTextSelectionProjection(
+          contentRevision: snapshot.contentRevision,
+          anchor: endpoint,
+          focus: endpoint,
+        ),
+      );
+      _syncFromAuthority();
+      setState(() {});
+    } catch (error) {
+      _recoverAfterIntentFailure('return to text selection intent', error);
+    }
+  }
+
+  void _moveBlockSelectionFocus(
+    KrepisEditorAuthority controller,
+    KrepisEditorSnapshot snapshot,
+    int direction,
+  ) {
+    try {
+      final selection = snapshot.selection;
+      final focusId = selection?.focus.blockId;
+      final focusIndex = snapshot.blocks.indexWhere(
+        (block) => block.id == focusId,
+      );
+      final currentIndex = focusIndex >= 0
+          ? focusIndex
+          : snapshot.blocks.indexWhere(
+              (block) => block.position == snapshot.blockPosition,
+            );
+      final targetIndex = currentIndex + direction;
+      if (targetIndex < 0 || targetIndex >= snapshot.blocks.length) return;
+      final target = snapshot.blocks[targetIndex];
+      final endpoint = KrepisTextEndpointProjection(
+        blockId: target.id,
+        graphemeBoundary: 0,
+        affinity: KrepisTextAffinity.downstream,
+      );
+      final extendsSelection =
+          HardwareKeyboard.instance.isShiftPressed &&
+          selection?.contentRevision == snapshot.contentRevision;
+      controller.setStableBlockSelection(
+        KrepisTextSelectionProjection(
+          contentRevision: snapshot.contentRevision,
+          anchor: extendsSelection ? selection!.anchor : endpoint,
+          focus: endpoint,
+        ),
+      );
+      _syncFromAuthority();
+      setState(() {});
+    } catch (error) {
+      _recoverAfterIntentFailure('Block selection navigation intent', error);
+    }
   }
 
   void _undo() {
@@ -1160,7 +1322,11 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
             _paragraphBreakRevisionAwaitingAction = null;
           }
         });
-      } else {
+      } else if (!_shouldApplyToggleShortcut(range, inserted) ||
+          !controller.applyToggleShortcut(
+            expectedContentRevision: controller.snapshot!.contentRevision,
+            timestamp: _now(),
+          )) {
         controller.insertText(inserted, timestamp: _now(), group: 1);
       }
       _syncFromAuthority();
@@ -1168,6 +1334,15 @@ class _NotistFlowEditorState extends State<NotistFlowEditor>
     } catch (error) {
       _recoverAfterIntentFailure('TextInput intent', error);
     }
+  }
+
+  bool _shouldApplyToggleShortcut(TextReplacementRange range, String inserted) {
+    return inserted == ' ' &&
+        range.prefix == 1 &&
+        range.oldEnd == 1 &&
+        _value.text == '>' &&
+        _value.selection.isCollapsed &&
+        _value.selection.extentOffset == 1;
   }
 
   bool _shouldOpenSlashMenu(TextReplacementRange range, String inserted) {
@@ -1261,6 +1436,19 @@ class _KrepisDisplayPainter extends CustomPainter {
           );
         case KrepisDrawGlyphRun():
           _drawGlyphRun(canvas, command);
+        case KrepisDrawFilledPolygon():
+          final vertices = command.vertices;
+          final path = Path()..moveTo(vertices.first.x, vertices.first.y);
+          for (final vertex in vertices.skip(1)) {
+            path.lineTo(vertex.x, vertex.y);
+          }
+          path.close();
+          canvas.drawPath(
+            path,
+            Paint()
+              ..color = Color(command.color)
+              ..style = PaintingStyle.fill,
+          );
         case KrepisPushClip():
           canvas.save();
           canvas.clipRect(

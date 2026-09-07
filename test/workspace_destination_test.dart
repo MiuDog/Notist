@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notist/src/shell/notist_workspace_destination.dart';
 

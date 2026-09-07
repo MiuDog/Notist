@@ -1,0 +1,24 @@
+diff --git a/pubspec.yaml b/pubspec.yaml
+--- a/pubspec.yaml
++++ b/pubspec.yaml
+@@ -1,6 +1,6 @@
+ name: appflowy_editor
+ description: A highly customizable rich-text editor for Flutter.
+-version: 6.2.0
++version: 6.2.0+notist-baseline.1
+ homepage: https://appflowy.io
+ repository: https://github.com/AppFlowy-IO/appflowy-editor
+ 
+diff --git a/lib/src/editor/editor_component/service/ime/delta_input_service.dart b/lib/src/editor/editor_component/service/ime/delta_input_service.dart
+--- a/lib/src/editor/editor_component/service/ime/delta_input_service.dart
++++ b/lib/src/editor/editor_component/service/ime/delta_input_service.dart
+@@ -102,6 +102,9 @@ class DeltaTextInputService extends TextInputService with DeltaTextInputClient {
+   @override
+   void insertTextPlaceholder(Size size) {}
+ 
++  @override
++  bool onFocusReceived() => false;
++
+   @override
+   Future<void> performAction(TextInputAction action) async {
+     return onPerformAction(action);

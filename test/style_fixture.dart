@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/material.dart';
 import 'package:kallopis/kallopis.dart';
 
@@ -32,7 +36,6 @@ final KlpVisualStyle contrastingStyle = KlpVisualStyle.defaultStyle.copyWith(
   spacing: KlpSpacingTheme.comfortableDensity.copyWith(
     hairline: 0,
     tight: 2,
-    compact: 4,
     base: 8,
     comfortable: 8,
     loose: 12,

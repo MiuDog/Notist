@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/foundation.dart';
 
 /// 某一天的一則日誌條目。

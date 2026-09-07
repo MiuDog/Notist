@@ -1,5 +1,9 @@
 # workspace-shell-routing 任務清單
 
+> 本檔保留歷史工作區外殼的任務與完成紀錄。當前功能排程請見
+> [功能里程碑修正版](notist-functional-milestones-20260907.md) 與
+> [里程碑追蹤](notist-functional-milestones-todo.md)；修正版待核准，不沿用本檔的 Completed 作為新里程碑驗收。
+
 狀態：Completed（2026-08-23；Q1 A、Q2 A、Q3 A 全部驗收通過）
 
 ## Task WSR-B: Capture the dirty-worktree baseline

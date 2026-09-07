@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
 	[string] $FlutterPath = $env:NOTIST_FLUTTER,
+	[switch] $AllowNonFatalInfos,
 
 	[switch] $BuildWindowsRelease
 )
@@ -98,12 +99,14 @@ Invoke-VerifyStep -Name '格式檢查' -Executable $dartExe -Arguments @(
 	'lib',
 	'test'
 )
-Invoke-VerifyStep -Name '靜態分析' -Executable $flutterExe -Arguments @(
-	'analyze',
-	'--fatal-infos',
-	'lib',
-	'test'
-)
+	$analyzeArguments = @('analyze', 'lib', 'test')
+	if ($AllowNonFatalInfos) {
+		$analyzeArguments = @('analyze', '--no-fatal-infos', 'lib', 'test')
+	} else {
+		$analyzeArguments = @('analyze', '--fatal-infos', 'lib', 'test')
+	}
+
+Invoke-VerifyStep -Name '靜態分析' -Executable $flutterExe -Arguments $analyzeArguments
 Invoke-VerifyStep -Name 'Windows Debug 與 Krepis ABI 建置' -Executable $flutterExe -Arguments @(
 	'build',
 	'windows',

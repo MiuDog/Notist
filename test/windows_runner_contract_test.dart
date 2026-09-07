@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 import 'dart:io';
@@ -54,6 +58,7 @@ final class KrepisEditorSnapshot {
     required this.canUndo,
     required this.canRedo,
     required this.hasComposition,
+    required this.selectionMode,
     required this.flowCount,
     required this.spatialCount,
     this.blocks = const [],
@@ -72,6 +77,7 @@ final class KrepisEditorSnapshot {
   final bool canUndo;
   final bool canRedo;
   final bool hasComposition;
+  final KrepisSelectionMode selectionMode;
   final int flowCount;
   final int spatialCount;
   final List<KrepisFlowBlockProjection> blocks;
@@ -95,6 +101,11 @@ abstract class KrepisEditorAuthority extends ChangeNotifier {
   void placeCaret(Size viewport, Offset point, double scrollY);
   Rect caretRect(Size viewport, double scrollY);
 
+  /// authority 逐行文字選取矩形；Block selection 不得透過此 API 投影。
+  List<Rect> textSelectionRects(Size viewport, double scrollY) {
+    throw UnsupportedError('此 Krepis authority 尚未提供文字選取 geometry');
+  }
+
   /// 版面／命中矩形：含區塊間距，相鄰 Block 連續無縫。**命中測試用這個。**
   Rect blockRect(int position, Size viewport, double scrollY) {
     throw UnsupportedError('此 Krepis authority 尚未提供 Block geometry');
@@ -108,6 +119,13 @@ abstract class KrepisEditorAuthority extends ChangeNotifier {
   }
 
   void insertText(String text, {required int timestamp, required int group});
+  bool applyToggleShortcut({
+    required int expectedContentRevision,
+    required int timestamp,
+  }) {
+    throw UnsupportedError('此 Krepis authority 尚未提供 toggle shortcut');
+  }
+
   void insertParagraphBreak(int timestamp);
   void backspace(int timestamp);
   void undo();
@@ -125,6 +143,10 @@ abstract class KrepisEditorAuthority extends ChangeNotifier {
 
   void setStableSelection(KrepisTextSelectionProjection selection) {
     throw UnsupportedError('此 Krepis authority 尚未提供 stable selection');
+  }
+
+  void setStableBlockSelection(KrepisTextSelectionProjection selection) {
+    throw UnsupportedError('此 Krepis authority 尚未提供 stable Block selection');
   }
 
   void moveFlowBlockRange({
@@ -388,6 +410,9 @@ final class KrepisEditorController extends KrepisEditorAuthority {
           canUndo: flags & 1 != 0,
           canRedo: flags & 2 != 0,
           hasComposition: flags & 4 != 0,
+          selectionMode: flags & 8 != 0
+              ? KrepisSelectionMode.blocks
+              : KrepisSelectionMode.text,
           flowCount: views.ref.flowCount,
           spatialCount: views.ref.spatialCount,
           blocks: _blockAdapter.readBlocks(nativeState.ref.blockCount),
@@ -443,6 +468,12 @@ final class KrepisEditorController extends KrepisEditorAuthority {
   @override
   void setStableSelection(KrepisTextSelectionProjection selection) {
     _editingAdapter.setSelection(selection);
+    refresh();
+  }
+
+  @override
+  void setStableBlockSelection(KrepisTextSelectionProjection selection) {
+    _editingAdapter.setBlockSelection(selection);
     refresh();
   }
 
@@ -559,6 +590,49 @@ final class KrepisEditorController extends KrepisEditorAuthority {
   }
 
   @override
+  List<Rect> textSelectionRects(Size viewport, double scrollY) {
+    final required = calloc<ffi.Uint64>();
+    try {
+      final query = _native.getTextSelectionRects(
+        _engine,
+        viewport.width,
+        scrollY,
+        ffi.nullptr,
+        0,
+        required,
+      );
+      if (query != _ok && query != _outOfRange) {
+        _check(query, '查詢文字選取 geometry 大小');
+      }
+      final count = required.value;
+      if (count == 0) return const [];
+
+      final rects = calloc<KrepisRect>(count);
+      try {
+        _check(
+          _native.getTextSelectionRects(
+            _engine,
+            viewport.width,
+            scrollY,
+            rects,
+            count,
+            required,
+          ),
+          '取得文字選取 geometry',
+        );
+        return List.generate(count, (index) {
+          final rect = rects[index];
+          return Rect.fromLTWH(rect.x, rect.y, rect.width, rect.height);
+        }, growable: false);
+      } finally {
+        calloc.free(rects);
+      }
+    } finally {
+      calloc.free(required);
+    }
+  }
+
+  @override
   Rect blockRect(int position, Size viewport, double scrollY) {
     final rect = _blockAdapter.readRect(position, viewport.width, scrollY);
     return Rect.fromLTWH(rect.x, rect.y, rect.width, rect.height);
@@ -596,6 +670,29 @@ final class KrepisEditorController extends KrepisEditorAuthority {
       ),
     );
     _finishEdit();
+  }
+
+  @override
+  bool applyToggleShortcut({
+    required int expectedContentRevision,
+    required int timestamp,
+  }) {
+    final applied = calloc<ffi.Uint32>();
+    try {
+      _check(
+        _native.applyToggleShortcut(
+          _engine,
+          expectedContentRevision,
+          timestamp,
+          applied,
+        ),
+        '套用 toggle 輸入快捷',
+      );
+      if (applied.value != 0) _finishEdit();
+      return applied.value != 0;
+    } finally {
+      calloc.free(applied);
+    }
   }
 
   @override

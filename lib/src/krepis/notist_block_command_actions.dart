@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/foundation.dart';
 
 import 'krepis_block.dart';

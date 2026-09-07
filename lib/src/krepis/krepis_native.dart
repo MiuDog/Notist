@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:ffi' as ffi;
 import 'dart:io';
 
@@ -151,7 +155,7 @@ final class KrepisFlowBlockInput extends ffi.Struct {
   external int taskChecked;
 
   @ffi.Uint32()
-  external int reserved;
+  external int toggleCollapsed;
 
   external ffi.Pointer<ffi.Uint8> utf8;
 
@@ -189,7 +193,7 @@ final class KrepisFlowBlockInfo extends ffi.Struct {
   external int taskChecked;
 
   @ffi.Uint32()
-  external int reserved;
+  external int toggleCollapsed;
 
   @ffi.Uint64()
   external int blockIdHigh;
@@ -484,6 +488,24 @@ typedef KrepisGetCaretRect =
       double,
       ffi.Pointer<KrepisRect>,
     );
+typedef _TextSelectionRectsNative =
+    ffi.Uint32 Function(
+      ffi.Pointer<ffi.Void>,
+      ffi.Double,
+      ffi.Double,
+      ffi.Pointer<KrepisRect>,
+      ffi.Uint64,
+      ffi.Pointer<ffi.Uint64>,
+    );
+typedef KrepisGetTextSelectionRects =
+    int Function(
+      ffi.Pointer<ffi.Void>,
+      double,
+      double,
+      ffi.Pointer<KrepisRect>,
+      int,
+      ffi.Pointer<ffi.Uint64>,
+    );
 typedef _FlowExtentNative =
     ffi.Uint32 Function(ffi.Pointer<ffi.Void>, ffi.Pointer<ffi.Double>);
 typedef KrepisGetFlowExtent =
@@ -601,7 +623,7 @@ final class KrepisNative {
   KrepisNative._(this.library);
 
   static const int requiredAbiMajor = 1;
-  static const int requiredAbiMinor = 8;
+  static const int requiredAbiMinor = 11;
 
   factory KrepisNative.open() {
     if (!Platform.isWindows) {
@@ -635,8 +657,10 @@ final class KrepisNative {
   late final KrepisSetSelection setSelection;
   late final KrepisGetTextSelection getTextSelection;
   late final KrepisSetTextSelection setTextSelection;
+  late final KrepisSetBlockSelection setBlockSelection;
   late final KrepisMoveFlowBlockRange moveFlowBlockRange;
   late final KrepisConvertFlowBlock convertFlowBlock;
+  late final KrepisApplyToggleShortcut applyToggleShortcut;
   late final KrepisGetCommandApplicability getCommandApplicability;
   late final KrepisInkOutlineCreate createInkOutlineEngine;
   late final KrepisInkOutlineDestroy destroyInkOutlineEngine;
@@ -646,6 +670,7 @@ final class KrepisNative {
   late final KrepisCommitInkCapture commitInkCapture;
   late final KrepisPointOperation placeCaret;
   late final KrepisGetCaretRect getCaretRect;
+  late final KrepisGetTextSelectionRects getTextSelectionRects;
   late final KrepisGetFlowExtent getFlowExtent;
   late final KrepisInsert insert;
   late final KrepisTimestampOperation paragraphBreak;
@@ -665,7 +690,7 @@ final class KrepisNative {
   late final KrepisRelease releaseOutline;
 
   int createNegotiatedEngine(ffi.Pointer<ffi.Pointer<ffi.Void>> outEngine) {
-    // create／destroy 是 bootstrap pair；其餘 symbol 只能在 ABI 1.8 協商成功後綁定。
+    // create／destroy 是 bootstrap pair；其餘 symbol 只能在 ABI 1.11 協商成功後綁定。
     final create = library.lookupFunction<_CreateNative, KrepisCreate>(
       'krepis_display_engine_create',
     );
@@ -770,6 +795,10 @@ final class KrepisNative {
         .lookupFunction<KrepisSetTextSelectionNative, KrepisSetTextSelection>(
           'krepis_editor_set_text_selection',
         );
+    setBlockSelection = library
+        .lookupFunction<KrepisSetBlockSelectionNative, KrepisSetBlockSelection>(
+          'krepis_editor_set_block_selection',
+        );
     moveFlowBlockRange = library
         .lookupFunction<
           KrepisMoveFlowBlockRangeNative,
@@ -779,6 +808,11 @@ final class KrepisNative {
         .lookupFunction<KrepisConvertFlowBlockNative, KrepisConvertFlowBlock>(
           'krepis_editor_convert_flow_block',
         );
+    applyToggleShortcut = library
+        .lookupFunction<
+          KrepisApplyToggleShortcutNative,
+          KrepisApplyToggleShortcut
+        >('krepis_editor_apply_toggle_shortcut');
     getCommandApplicability = library
         .lookupFunction<
           KrepisGetCommandApplicabilityNative,
@@ -814,6 +848,10 @@ final class KrepisNative {
     getCaretRect = library.lookupFunction<_CaretRectNative, KrepisGetCaretRect>(
       'krepis_editor_get_caret_rect',
     );
+    getTextSelectionRects = library
+        .lookupFunction<_TextSelectionRectsNative, KrepisGetTextSelectionRects>(
+          'krepis_editor_get_text_selection_rects',
+        );
     getFlowExtent = library
         .lookupFunction<_FlowExtentNative, KrepisGetFlowExtent>(
           'krepis_editor_get_flow_extent',

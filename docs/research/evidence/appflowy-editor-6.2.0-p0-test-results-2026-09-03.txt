@@ -1,0 +1,71 @@
+AppFlowy Editor 6.2.0+notist-baseline.1 P0 test evidence
+Captured: 2026-09-03 Asia/Taipei
+Host: Windows 11
+Flutter: 3.44.2 stable, framework c9a6c48423
+Dart: 3.12.2
+
+Command:
+flutter test --reporter expanded
+
+Passing behavior cases:
++1 F01 composition delta tracks active range and committed CJK text
++2 F03 undo restores content and selection
++3 F05 cross-block selection returns ordered slices
++4 F07 cross-block delete merges edge text and collapses selection
++5 F14 inline mark spans a cross-block selection
++6 F21 copy and paste preserve desktop plain text
++7 renders the pinned AppFlowy Editor baseline
+
+Terminal result:
+00:01 +7: All tests passed!
+Exit code: 0
+
+Package-owned targeted suite:
+flutter test --reporter expanded
+  test\new\command\selection_commands_test.dart
+  test\new\command\text_commands_test.dart
+  test\new\editor_component\service\shortcuts\command_shortcuts\paste_command_test.dart
+
+Coverage observed in the named tests:
+- collapsed, single-node, multi-node, and nested-node deleteSelection
+- collapsed, single-node, and multi-node formatDelta
+- newline insertion and text insertion
+- collapsed, single-node, and multi-node selection extraction
+- stored inline style toggle
+- single-line, multi-node, URL, phone, HTML, and unformatted paste
+
+Terminal result:
+00:02 +24: All tests passed!
+Exit code: 0
+
+Complete package suite:
+flutter test --reporter compact
+
+Terminal result:
+02:07 +905 -1: Some tests failed.
+Exit code: 1
+
+Only observed failure:
+test/performance/selection_update_performance_test.dart
+single paragraph without children - baseline performance test
+Expected: selection update <150ms
+Actual: 212ms
+
+The same run recorded 88ms for selecting the first child in a paragraph with
+1000 children. The failed timing threshold was not relaxed or patched. This
+result is environment-sensitive and is evidence for F34, not a functional
+regression attributed to the onFocusReceived compatibility patch.
+
+Static analysis:
+No issues found! (ran in 4.0s)
+Exit code: 0
+
+Windows build:
+Built build\windows\x64\runner\Debug\appflowy_editor_baseline.exe
+Exit code: 0
+
+Scope note:
+These automated cases and the package-owned targeted suite prove core data
+behavior in the patched research baseline.
+They do not replace native Windows IME, pointer/keyboard geometry, external-app
+clipboard, shortcut, or UI undo observations; those remain U in the baseline.

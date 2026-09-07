@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:ffi' as ffi;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -18,7 +22,7 @@ void main() {
 
   test('requires the additive Flow projection ABI minor', () {
     expect(KrepisNative.requiredAbiMajor, 1);
-    expect(KrepisNative.requiredAbiMinor, 8);
+    expect(KrepisNative.requiredAbiMinor, 11);
     expect(ffi.sizeOf<KrepisFlowDocumentInfo>(), 24);
     expect(ffi.sizeOf<KrepisMarkdownImportResultNative>(), 24);
   });

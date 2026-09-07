@@ -1,4 +1,9 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:kallopis/kallopis.dart';
 
 enum NotistLocalSaveState { idle, localLoaded, saving, localSaved, failed }
@@ -10,6 +15,8 @@ final class NotistLocalSaveController
   Object? error;
   VoidCallback? _retry;
   var _generation = 0;
+  var _revision = 0;
+  var _disposed = false;
 
   VoidCallback? get retry => _retry;
 
@@ -22,25 +29,25 @@ final class NotistLocalSaveController
   void beginSave({int? session}) {
     if (!_accepts(session)) return;
     error = null;
-    value = NotistLocalSaveState.saving;
+    _publish(NotistLocalSaveState.saving);
   }
 
   void markLoaded({int? session}) {
     if (!_accepts(session)) return;
     error = null;
-    value = NotistLocalSaveState.localLoaded;
+    _publish(NotistLocalSaveState.localLoaded);
   }
 
   void completeSave({int? session}) {
     if (!_accepts(session)) return;
     error = null;
-    value = NotistLocalSaveState.localSaved;
+    _publish(NotistLocalSaveState.localSaved);
   }
 
   void failSave(Object nextError, {int? session}) {
     if (!_accepts(session)) return;
     error = nextError;
-    value = NotistLocalSaveState.failed;
+    _publish(NotistLocalSaveState.failed);
   }
 
   void configureRetry(VoidCallback retry, {int? session}) {
@@ -64,7 +71,32 @@ final class NotistLocalSaveController
   void _clear() {
     error = null;
     _retry = null;
-    value = NotistLocalSaveState.idle;
+    _publish(NotistLocalSaveState.idle);
+  }
+
+  void _publish(NotistLocalSaveState next) {
+    final revision = ++_revision;
+    if (value == next) return;
+
+    // Widget 卸載期間不可同步喚醒仍掛著的 ValueListenableBuilder。
+    if (SchedulerBinding.instance.schedulerPhase ==
+        SchedulerPhase.persistentCallbacks) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (_disposed || revision != _revision) return;
+
+        value = next;
+      });
+      return;
+    }
+
+    value = next;
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _revision += 1;
+    super.dispose();
   }
 }
 
@@ -84,6 +116,23 @@ class NotistLocalSaveStatus extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Expanded(child: KlpStatusBar(data: _statusData)),
+        if (state == NotistLocalSaveState.failed) ...[
+          SizedBox(width: context.klp.space.tight),
+          KlpButton(
+            label: '重試儲存',
+            size: KlpControlSize.xs,
+            tone: KlpButtonTone.ghost,
+            onPressed: onRetry,
+          ),
+        ],
+      ],
+    );
+  }
+
+  KlpStatusBarData get _statusData {
     final (label, kind, active) = switch (state) {
       NotistLocalSaveState.idle => ('尚未儲存', KlpStatusKind.circle, false),
       NotistLocalSaveState.localLoaded => ('已載入', KlpStatusKind.check, true),
@@ -91,43 +140,17 @@ class NotistLocalSaveStatus extends StatelessWidget {
       NotistLocalSaveState.localSaved => ('已儲存', KlpStatusKind.check, true),
       NotistLocalSaveState.failed => ('儲存失敗', KlpStatusKind.cross, false),
     };
+    final leading = <KlpStatusItemData>[
+      KlpStatusItemData(label: label, kind: kind, active: active),
+      if (blockCount != null)
+        KlpStatusItemData(label: '區塊 $blockCount', showsIndicator: false),
+      if (undoHistoryEvicted)
+        const KlpStatusItemData(label: '較早的復原紀錄已清除', showsIndicator: false),
+    ];
 
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: context.klp.space.compact),
-      child: Row(
-        children: [
-          KlpStatusIndicator(label: label, kind: kind, active: active),
-          if (blockCount != null) ...[
-            SizedBox(width: context.klp.space.base),
-            const KlpText(
-              '區塊',
-              role: KlpTextRole.code,
-              tone: KlpTextTone.muted,
-            ),
-            SizedBox(width: context.klp.space.tight),
-            KlpText('$blockCount', role: KlpTextRole.code),
-          ],
-          if (undoHistoryEvicted) ...[
-            SizedBox(width: context.klp.space.base),
-            const KlpText(
-              '較早的復原紀錄已清除',
-              role: KlpTextRole.code,
-              tone: KlpTextTone.muted,
-            ),
-          ],
-          const Spacer(),
-          if (state == NotistLocalSaveState.failed) ...[
-            KlpButton(
-              label: '重試儲存',
-              compact: true,
-              tone: KlpButtonTone.ghost,
-              onPressed: onRetry,
-            ),
-            SizedBox(width: context.klp.space.compact),
-          ],
-          const KlpText('本機', role: KlpTextRole.code, tone: KlpTextTone.faint),
-        ],
-      ),
+    return KlpStatusBarData(
+      leading: leading,
+      trailing: const [KlpStatusItemData(label: '本機', showsIndicator: false)],
     );
   }
 }

@@ -32,6 +32,13 @@ migrate_working_dir/
 .pub/
 /build/
 /coverage/
+devtools_options.yaml
+
+# Golden 測試失敗產物（僅供本機比對，不入版控）
+**/test/failures/
+
+# Windows 執行成品與實機截圖（保留於本機）
+/artifacts/
 
 # Symbolication related
 app.*.symbols

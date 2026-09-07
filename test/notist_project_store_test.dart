@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -20,7 +24,7 @@ void main() {
     }
   });
 
-  test('lists nested Flow locations and project folders', () async {
+  test('lists direct folder Flows and project folders only', () async {
     final nested = Directory(
       '${projectDirectory.path}${Platform.pathSeparator}研究'
       '${Platform.pathSeparator}草稿',
@@ -35,17 +39,23 @@ void main() {
 
     final flows = await store.listFlows();
 
-    expect(await store.listFolderPaths(), ['研究', '研究/草稿']);
+    expect(await store.listFolderPaths(), ['研究']);
+    expect(flows.map((flow) => flow.folderPath), containsAll(<String>['']));
     expect(
-      flows.map((flow) => flow.folderPath),
-      containsAll(<String>['', '研究/草稿']),
+      flows.where((flow) => flow.folderPath == '').map((flow) => flow.filePath),
+      ['${projectDirectory.path}${Platform.pathSeparator}root.krdf'],
     );
     expect(
-      flows.map((flow) => flow.filePath),
-      containsAll(<String>[
-        '${projectDirectory.path}${Platform.pathSeparator}root.krdf',
-        '${nested.path}${Platform.pathSeparator}nested.krdf',
-      ]),
+      flows
+          .map((flow) => flow.folderPath)
+          .every((folderPath) => folderPath != '研究/草稿'),
+      isTrue,
+    );
+    expect(
+      flows
+          .map((flow) => flow.filePath)
+          .any((path) => path.contains('${Platform.pathSeparator}草稿')),
+      isFalse,
     );
   });
 

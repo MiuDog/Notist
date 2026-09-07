@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:convert';
 import 'dart:ffi' as ffi;
 
@@ -73,6 +77,19 @@ final class KrepisEditingAdapter {
     }
   }
 
+  void setBlockSelection(KrepisTextSelectionProjection selection) {
+    final value = calloc<KrepisTextSelectionNative>();
+    try {
+      _writeSelection(value.ref, selection);
+      _check(
+        _native.setBlockSelection(_engine, value),
+        '設定 stable Block selection',
+      );
+    } finally {
+      calloc.free(value);
+    }
+  }
+
   void move({
     required int expectedContentRevision,
     required KrepisFlowBlockRange source,
@@ -132,6 +149,7 @@ final class KrepisEditingAdapter {
         ..nestingDepth = attributes.nestingDepth
         ..orderedStart = attributes.orderedStart
         ..taskChecked = attributes.taskChecked ? 1 : 0
+        ..toggleCollapsed = attributes.toggleCollapsed ? 1 : 0
         ..infoUtf8 = infoBytes
         ..infoSize = info.length;
 

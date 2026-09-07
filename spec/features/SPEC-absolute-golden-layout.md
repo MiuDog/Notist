@@ -1,10 +1,13 @@
 # Spec: absolute-golden-layout
 
-狀態：Accepted（2026-08-24；使用者指定附件布局為本專案絕對 golden）
+狀態：Accepted（2026-08-24；2026-09-03 圖示資產政策修訂）
 
 ## Outcome
 
 Notist 桌面 shell 完整仿作 `spec/references/notist-absolute-golden-layout.png` 的區域配置、資訊層級與互動位置；視覺風格不由 Notist 決定，全部使用 Kallopis 公開元件與 theme token。
+
+2026-09-03 使用者明確指定 Kallopis 圖示預設一律使用 Flaticon 字型並棄用舊 SVG。此修訂只更新
+圖示輪廓的 golden 像素，不改變本規格的區域、尺寸、位置與資訊層級。
 
 ## In scope
 

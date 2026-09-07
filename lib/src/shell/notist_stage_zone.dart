@@ -2,6 +2,9 @@
 ///
 /// 導覽入口與文件選取是**互斥**的：點導覽項目會清掉文件選取，點筆記會清掉導覽項目。
 /// 少了這個區分，兩邊會各自以為自己還被選著，側欄同時亮兩個地方。
+
+library;
+
 enum NotistStageZone {
   /// 顯示 [NotistWorkspaceDestination] 對應的入口畫面。
   destination,

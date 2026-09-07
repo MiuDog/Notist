@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:ui';
 
 enum KrepisInkWidthMode { constant, pressure, velocity, pressureAndVelocity }

@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kallopis/kallopis.dart';
@@ -12,22 +16,24 @@ void main() {
     await tester.pumpWidget(
       KlpApp(
         showWindowHeader: false,
-        home: KlpAppScreen(
-          child: NotistQuickSearchPage(
-            documents: const [
-              NotistFlowDocument(
-                rootId: 'root-spec',
-                title: '工程規格',
-                filePath: r'C:\project\spec.krdf',
-                folderPath: 'docs',
-              ),
-              NotistFlowDocument(
-                rootId: 'root-journal',
-                title: '課堂筆記',
-                filePath: r'C:\project\journal.krdf',
-              ),
-            ],
-            onOpen: (rootId) => openedRootId = rootId,
+        home: KlpPanelFrame(
+          content: KlpAppScreen(
+            child: NotistQuickSearchPage(
+              documents: const [
+                NotistFlowDocument(
+                  rootId: 'root-spec',
+                  title: '工程規格',
+                  filePath: r'C:\project\spec.krdf',
+                  folderPath: 'docs',
+                ),
+                NotistFlowDocument(
+                  rootId: 'root-journal',
+                  title: '課堂筆記',
+                  filePath: r'C:\project\journal.krdf',
+                ),
+              ],
+              onOpen: (rootId) => openedRootId = rootId,
+            ),
           ),
         ),
       ),

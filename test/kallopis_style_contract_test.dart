@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -99,11 +103,15 @@ void main() {
   });
 
   test('不得自行指定字體樣式', () {
-    // 字級與字重屬於排版系統。krepis_display.dart 例外：
-    // 它是在解碼 Krepis display list 的二進位欄位，不是在指定樣式。
+    // 字級與字重屬於排版系統。Krepis display 檔案例外是二進位欄位；
+    // math host 只呼叫 Kallopis 明載供 TextSpan 混排的 role resolver。
     final hits = scan(
       RegExp(r'TextStyle\(|fontSize:|fontWeight:|fontFamily:'),
-      exemptSuffixes: {'lib/src/krepis/krepis_display.dart'},
+      exemptSuffixes: {
+        'lib/src/krepis/krepis_display.dart',
+        'lib/src/krepis/krepis_display_decoder.dart',
+        'lib/src/components/note/notist_note_math_host.dart',
+      },
     );
     expect(hits, isEmpty, reason: '改用 Kallopis 的排版語意：\n${hits.join('\n')}');
   });
@@ -117,13 +125,21 @@ void main() {
     expect(source, isNot(contains('darkTheme:')));
   });
 
-  test('主導覽使用 Kallopis 控制項', () {
-    final source = File(
+  test('主導覽與停駐框架使用 Kallopis 控制項', () {
+    final sidebarSource = File(
       'lib/src/sidebar/notist_sidebar.dart',
     ).readAsStringSync();
+    final workbenchSource = File(
+      'lib/src/shell/notist_workbench.dart',
+    ).readAsStringSync();
 
-    expect(source, contains('KlpSidebarNavigationButton('));
-    expect(source, isNot(contains('selectionBackground')));
+    expect(sidebarSource, isNot(contains('KlpNoteIdentityHeader(')));
+    expect(workbenchSource, contains('KlpRailMenuEntry('));
+    expect(workbenchSource, contains('KlpRailButtonEntry('));
+    expect(workbenchSource, contains('NotistWorkbenchSurface('));
+    expect(workbenchSource, isNot(contains('IstWorkbenchScreen(')));
+    expect(workbenchSource, contains('KlpDockPanel('));
+    expect(sidebarSource, isNot(contains('selectionBackground')));
   });
 
   test('契約本身有涵蓋範圍', () {

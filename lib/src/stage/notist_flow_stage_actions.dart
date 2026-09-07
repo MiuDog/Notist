@@ -1,7 +1,11 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/widgets.dart';
 import 'package:kallopis/kallopis.dart';
 
-enum NotistFlowStageMode { read, edit, ink }
+enum NotistFlowStageMode { read, edit }
 
 /// Flow 專屬的 Stage mode actions；視覺全部由 Kallopis controls 提供。
 class NotistFlowStageActions extends StatelessWidget {
@@ -26,30 +30,31 @@ class NotistFlowStageActions extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (showModeToggle) ...[
-          KlpPhaseToggle<NotistFlowStageMode>(
-            options: const [
-              KlpPhaseOption(
-                value: NotistFlowStageMode.read,
-                label: '閱讀模式',
-                icon: KlpIcons.eye,
-              ),
-              KlpPhaseOption(
-                value: NotistFlowStageMode.edit,
-                label: '編輯模式',
-                icon: KlpIcons.keyboard,
-              ),
-              KlpPhaseOption(
-                value: NotistFlowStageMode.ink,
-                label: '手寫模式',
-                icon: KlpIcons.handWriting,
-              ),
-            ],
-            selected: mode,
-            enabled: enabled,
-            onSelected: enabled ? onModeChanged : null,
+          KlpIconButton(
+            icon: KlpIcons.eye,
+            label: '唯讀',
+            selected: mode == NotistFlowStageMode.read,
+            onPressed: enabled
+                ? () => onModeChanged(NotistFlowStageMode.read)
+                : null,
+            tone: KlpIconButtonTone.inline,
           ),
-          SizedBox(width: context.klp.space.compact),
+          KlpIconButton(
+            icon: KlpIcons.keyboard,
+            label: '編輯',
+            selected: mode == NotistFlowStageMode.edit,
+            onPressed: enabled
+                ? () => onModeChanged(NotistFlowStageMode.edit)
+                : null,
+            tone: KlpIconButtonTone.inline,
+          ),
         ],
+        KlpIconButton(
+          icon: KlpIcons.handWriting,
+          label: '手寫（尚未提供）',
+          onPressed: null,
+          tone: KlpIconButtonTone.inline,
+        ),
         KlpIconButton(
           icon: KlpIcons.menu,
           label: '頁面選單',

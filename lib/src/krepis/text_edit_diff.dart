@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:characters/characters.dart';
 
 final class TextReplacementRange {

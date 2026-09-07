@@ -1,6 +1,6 @@
 # Notist
 
-**可同時承載區塊與手寫圖層的個人／團隊知識工作區。**
+**以專案、筆記與資料庫頁面管理為第一版方向的個人／團隊知識工作區。**
 
 Notist 面向需要自由筆記的學生、開發者與一般使用者。它以單一文件工作區開始，逐步提供
 專案搜尋、排程統整、資產管理、AI 統整與可核准的工具操作；長期可成為專案計畫的真實來源。
@@ -9,17 +9,28 @@ Notist 面向需要自由筆記的學生、開發者與一般使用者。它以�
 [GitHub Releases](https://github.com/MiuDog/Notist/releases) 下載 ZIP，並在執行前核對隨附的
 SHA-256；此版本未簽章、不適合正式環境或唯一資料副本。
 
+目前功能推進請從 [功能里程碑修正版](tasks/notist-functional-milestones-20260907.md) 與
+[里程碑追蹤](tasks/notist-functional-milestones-todo.md) 開始。每一步先規劃完整前後端路線，
+再於核准範圍內實作並通過功能完整性、Windows 實機與獨立驗收，才能進入下一步。
+修正版是待核准的規劃草案；文件已整理不代表列出的功能已完成，功能狀態以逐步驗收證據為準。
+最新需求見 [第一版管理與資料庫範圍](tasks/notist-v1-management-database-scope.md)。Notist 第一版
+暫時移除手寫功能；Krepis 保留 Ink 能力與既有資料，實際停用及相容處理仍待實作驗收。
+
 ## 這個專案為什麼存在
 
 Notist 是 [Krepis](https://github.com/MiuDog/Krepis) 筆記核心的**第一個產品消費者**，它有三個作用：
 
-1. **自由筆記產品。** Flow 最終同時支援 Notion 式可操作 Block 與獨立 Ink 圖層。
+1. **自由筆記產品。** 第一版優先完成筆記管理、Block 編輯與資料庫形式的巢狀頁面；手寫暫緩。
 2. **知識工作區。** 專案 Sidebar 固定提供快速搜尋、Journal、Notist AI 與資產庫。
 3. **核心驗證載體。** 真實產品持續驗證 Krepis 的內容、selection、transaction、undo、layout、
    persistence 與 authority 契約。
 
 ## 第一版邊界
 
+- 完整專案管理包含建立、進入與刪除；筆記管理包含建立、編輯、釘選與刪除。
+- 資料夾不可巢狀；頁面可巢狀，採資料庫形式並提供自訂欄位、篩選、排序與多種視圖。
+  欄位型別、視圖種類、刪除恢復與資料 owner 需在當步詳細計畫中裁決，不能把資料庫視圖等同 Sheet runtime。
+- Kallopis 正在施工，本輪不干涉或修改；所需通用元件先記入 [元件缺口清單](tasks/notist-kallopis-component-gaps.md)。
 - 中央一次只呈現一份文件或一個固定功能頁。
 - 不提供 tabs、split、Secondary Sidebar 或 Inspector。
 - 未完成能力顯示明確 empty／unavailable state，不使用假資料冒充完成。
@@ -68,7 +79,7 @@ Krepis 核心採 MiuDog 專有私人 Beta 評估授權，完整本文與所有�
 
 ## 從原始碼建置
 
-目前 `main` 固定使用 Kallopis `9d8b2d078b1c6750d2220d212be4d19626b094ad` 與 Krepis
+發行候選固定使用 Kallopis `ee42c3854d12cd7b4100b7b61697c90c938ce570` 與 Krepis
 `546891bc2663105f87cdcf94da6513a6c051d1cf`，由正式 GitHub URL 取得，不依賴 sibling checkout。
 
 ```powershell
@@ -95,6 +106,8 @@ pwsh.exe -NoProfile -ExecutionPolicy Bypass -File tool/verify.ps1
 ```
 
 ## Private Beta 已知限制
+
+以下記錄已發布 `0.1.0-beta.1` 的能力與限制，不代表最新首版規劃仍納入 Ink，也不是新里程碑驗收證據。
 
 - 第一版只驗收 Windows x64，且成品尚未進行程式碼簽章；Windows 可能顯示 SmartScreen 警告。
 - 工作區同時只顯示一份文件，不提供 tabs、split、Secondary Sidebar 或 Inspector。

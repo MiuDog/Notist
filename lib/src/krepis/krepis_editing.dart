@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/foundation.dart';
 
 import 'krepis_block.dart';
@@ -5,6 +9,8 @@ import 'krepis_block.dart';
 enum KrepisTextAffinity { upstream, downstream }
 
 enum KrepisBlockTargetAffinity { before, after }
+
+enum KrepisSelectionMode { text, blocks }
 
 @immutable
 final class KrepisTextEndpointProjection {
@@ -74,6 +80,7 @@ final class KrepisFlowBlockAttributes {
     this.nestingDepth = 0,
     this.orderedStart = 0,
     this.taskChecked = false,
+    this.toggleCollapsed = false,
     this.info = '',
   });
 
@@ -81,18 +88,21 @@ final class KrepisFlowBlockAttributes {
     KrepisFlowBlockProjection block, {
     KrepisFlowBlockKind? kind,
     bool? taskChecked,
+    bool? toggleCollapsed,
   }) {
     final targetKind = kind ?? block.kind;
     final targetIsList = switch (targetKind) {
       KrepisFlowBlockKind.unorderedListItem ||
       KrepisFlowBlockKind.orderedListItem ||
       KrepisFlowBlockKind.taskListItem => true,
+      KrepisFlowBlockKind.toggleListItem => true,
       _ => false,
     };
     final sourceIsList = switch (block.kind) {
       KrepisFlowBlockKind.unorderedListItem ||
       KrepisFlowBlockKind.orderedListItem ||
       KrepisFlowBlockKind.taskListItem => true,
+      KrepisFlowBlockKind.toggleListItem => true,
       _ => false,
     };
 
@@ -114,6 +124,11 @@ final class KrepisFlowBlockAttributes {
                 (block.kind == KrepisFlowBlockKind.taskListItem &&
                     block.taskChecked)
           : false,
+      toggleCollapsed: targetKind == KrepisFlowBlockKind.toggleListItem
+          ? toggleCollapsed ??
+                (block.kind == KrepisFlowBlockKind.toggleListItem &&
+                    block.toggleCollapsed)
+          : false,
       info:
           targetKind == KrepisFlowBlockKind.codeBlock &&
               block.kind == KrepisFlowBlockKind.codeBlock
@@ -127,5 +142,6 @@ final class KrepisFlowBlockAttributes {
   final int nestingDepth;
   final int orderedStart;
   final bool taskChecked;
+  final bool toggleCollapsed;
   final String info;
 }

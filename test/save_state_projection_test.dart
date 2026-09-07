@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kallopis/kallopis.dart';
@@ -60,6 +64,30 @@ void main() {
     expect(controller.retry, isNull);
   });
 
+  testWidgets('ending a session during widget teardown is safe', (
+    tester,
+  ) async {
+    final controller = NotistLocalSaveController();
+    addTearDown(controller.dispose);
+    final session = controller.beginSession();
+    controller.completeSave(session: session);
+
+    Widget buildFrame(bool showSession) {
+      return ValueListenableBuilder<NotistLocalSaveState>(
+        valueListenable: controller,
+        builder: (context, state, child) => showSession
+            ? _EndSessionOnDispose(controller: controller, session: session)
+            : const SizedBox.shrink(),
+      );
+    }
+
+    await tester.pumpWidget(buildFrame(true));
+    await tester.pumpWidget(buildFrame(false));
+
+    expect(tester.takeException(), isNull);
+    expect(controller.value, NotistLocalSaveState.idle);
+  });
+
   Future<void> pumpStatus(
     WidgetTester tester,
     NotistLocalSaveState state, {
@@ -68,8 +96,10 @@ void main() {
     await tester.pumpWidget(
       KlpApp(
         showWindowHeader: false,
-        home: KlpAppScreen(
-          child: NotistLocalSaveStatus(state: state, onRetry: onRetry),
+        home: KlpPanelFrame(
+          content: KlpAppScreen(
+            child: NotistLocalSaveStatus(state: state, onRetry: onRetry),
+          ),
         ),
       ),
     );
@@ -90,7 +120,7 @@ void main() {
     for (final entry in cases.entries) {
       await pumpStatus(tester, entry.key);
 
-      expect(find.byType(KlpStatusIndicator), findsOneWidget);
+      expect(find.byType(KlpStatusIndicator), findsNWidgets(2));
       expect(find.text(entry.value), findsOneWidget);
       for (final other in cases.values.where((value) => value != entry.value)) {
         expect(find.text(other), findsNothing);
@@ -104,17 +134,18 @@ void main() {
     await tester.pumpWidget(
       const KlpApp(
         showWindowHeader: false,
-        home: KlpAppScreen(
-          child: NotistLocalSaveStatus(
-            state: NotistLocalSaveState.localLoaded,
-            blockCount: 3,
+        home: KlpPanelFrame(
+          content: KlpAppScreen(
+            child: NotistLocalSaveStatus(
+              state: NotistLocalSaveState.localLoaded,
+              blockCount: 3,
+            ),
           ),
         ),
       ),
     );
 
-    expect(find.text('區塊'), findsOneWidget);
-    expect(find.text('3'), findsOneWidget);
+    expect(find.text('區塊 3'), findsOneWidget);
     expect(find.text('本機'), findsOneWidget);
   });
 
@@ -155,4 +186,25 @@ void main() {
 
     expect(retries, 1);
   });
+}
+
+final class _EndSessionOnDispose extends StatefulWidget {
+  const _EndSessionOnDispose({required this.controller, required this.session});
+
+  final NotistLocalSaveController controller;
+  final int session;
+
+  @override
+  State<_EndSessionOnDispose> createState() => _EndSessionOnDisposeState();
+}
+
+final class _EndSessionOnDisposeState extends State<_EndSessionOnDispose> {
+  @override
+  Widget build(BuildContext context) => const SizedBox.shrink();
+
+  @override
+  void dispose() {
+    widget.controller.endSession(widget.session);
+    super.dispose();
+  }
 }

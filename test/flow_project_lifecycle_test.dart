@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,11 +28,13 @@ void main() {
     await tester.pumpWidget(
       KlpApp(
         showWindowHeader: false,
-        home: KlpAppScreen(
-          child: NotistWorkbench(
-            projectController: controller,
-            flowEditorBuilder: (context, filePath) =>
-                SizedBox(key: ValueKey('editor-$filePath')),
+        home: KlpPanelFrame(
+          content: KlpAppScreen(
+            child: NotistWorkbench(
+              projectController: controller,
+              flowEditorBuilder: (context, filePath) =>
+                  SizedBox(key: ValueKey('editor-$filePath')),
+            ),
           ),
         ),
       ),
@@ -69,11 +75,13 @@ void main() {
       await tester.pumpWidget(
         KlpApp(
           showWindowHeader: false,
-          home: KlpAppScreen(
-            child: NotistWorkbench(
-              projectController: controller,
-              flowEditorBuilder: (context, filePath) =>
-                  SizedBox(key: ValueKey('editor-$filePath')),
+          home: KlpPanelFrame(
+            content: KlpAppScreen(
+              child: NotistWorkbench(
+                projectController: controller,
+                flowEditorBuilder: (context, filePath) =>
+                    SizedBox(key: ValueKey('editor-$filePath')),
+              ),
             ),
           ),
         ),
@@ -110,11 +118,13 @@ void main() {
     await tester.pumpWidget(
       KlpApp(
         showWindowHeader: false,
-        home: KlpAppScreen(
-          child: NotistWorkbench(
-            projectController: controller,
-            flowEditorBuilder: (context, filePath) =>
-                SizedBox(key: ValueKey('editor-$filePath')),
+        home: KlpPanelFrame(
+          content: KlpAppScreen(
+            child: NotistWorkbench(
+              projectController: controller,
+              flowEditorBuilder: (context, filePath) =>
+                  SizedBox(key: ValueKey('editor-$filePath')),
+            ),
           ),
         ),
       ),
@@ -166,11 +176,13 @@ void main() {
     await tester.pumpWidget(
       KlpApp(
         showWindowHeader: false,
-        home: KlpAppScreen(
-          child: NotistWorkbench(
-            projectController: controller,
-            flowEditorBuilder: (context, filePath) =>
-                SizedBox(key: ValueKey('editor-$filePath')),
+        home: KlpPanelFrame(
+          content: KlpAppScreen(
+            child: NotistWorkbench(
+              projectController: controller,
+              flowEditorBuilder: (context, filePath) =>
+                  SizedBox(key: ValueKey('editor-$filePath')),
+            ),
           ),
         ),
       ),
@@ -191,6 +203,9 @@ void main() {
 }
 
 final class _MemoryProjectStore implements NotistProjectStore {
+  @override
+  final String directoryPath = '';
+
   _MemoryProjectStore(this.paths, {this.folders = const []});
 
   final List<String> paths;

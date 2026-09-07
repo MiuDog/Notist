@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:kallopis/kallopis.dart';
@@ -5,6 +9,8 @@ import 'package:notist/main.dart';
 import 'package:notist/src/project/notist_flow_document.dart';
 import 'package:notist/src/project/notist_project_controller.dart';
 import 'package:notist/src/project/notist_project_store.dart';
+
+import 'support/load_kallopis_icon_fonts.dart';
 
 Widget buildGoldenEditor(BuildContext context, String filePath) {
   return Align(
@@ -17,6 +23,8 @@ Widget buildGoldenEditor(BuildContext context, String filePath) {
 }
 
 void main() {
+  setUpAll(loadKallopisIconFonts);
+
   testWidgets('matches the Notist desktop main visual', (tester) async {
     tester.view.physicalSize = const Size(1600, 1200);
     tester.view.devicePixelRatio = 1.0;
@@ -58,6 +66,9 @@ void main() {
 }
 
 final class _GoldenProjectStore implements NotistProjectStore {
+  @override
+  final String directoryPath = '';
+
   const _GoldenProjectStore();
 
   @override

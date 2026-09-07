@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:ui';
 
 import 'package:notist/src/krepis/krepis_block.dart';
@@ -7,8 +11,28 @@ import 'package:notist/src/krepis/krepis_ink.dart';
 import 'package:notist/src/krepis/krepis_editor_controller.dart';
 
 final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
-  KeyboardKrepisAuthority({KrepisEditorSnapshot? initialSnapshot})
-    : snapshot = initialSnapshot ?? _defaultSnapshot;
+  KeyboardKrepisAuthority({
+    KrepisEditorSnapshot? initialSnapshot,
+    bool blockSelection = false,
+    this.displayFrame = _frame,
+  }) : snapshot =
+           initialSnapshot ??
+           (blockSelection ? _defaultBlockSelectionSnapshot : _defaultSnapshot);
+
+  static const _defaultBlocks = [
+    KrepisFlowBlockProjection(
+      position: 0,
+      id: '00000000000000000000000000000002',
+      kind: KrepisFlowBlockKind.paragraph,
+      level: 0,
+      nestingDepth: 0,
+      orderedStart: 0,
+      taskChecked: false,
+      text: 'abc',
+      info: '',
+      marks: [],
+    ),
+  ];
 
   static const _defaultSnapshot = KrepisEditorSnapshot(
     rootId: '00000000000000000000000000000001',
@@ -21,22 +45,40 @@ final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
     canUndo: true,
     canRedo: true,
     hasComposition: false,
+    selectionMode: KrepisSelectionMode.text,
     flowCount: 1,
     spatialCount: 0,
-    blocks: [
-      KrepisFlowBlockProjection(
-        position: 0,
-        id: '00000000000000000000000000000002',
-        kind: KrepisFlowBlockKind.paragraph,
-        level: 0,
-        nestingDepth: 0,
-        orderedStart: 0,
-        taskChecked: false,
-        text: 'abc',
-        info: '',
-        marks: [],
+    blocks: _defaultBlocks,
+  );
+
+  static const _defaultBlockSelectionSnapshot = KrepisEditorSnapshot(
+    rootId: '00000000000000000000000000000001',
+    title: 'abc',
+    text: 'abc',
+    contentRevision: 1,
+    blockCount: 1,
+    blockPosition: 0,
+    utf8ByteOffset: 3,
+    canUndo: true,
+    canRedo: true,
+    hasComposition: false,
+    selectionMode: KrepisSelectionMode.blocks,
+    flowCount: 1,
+    spatialCount: 0,
+    blocks: _defaultBlocks,
+    selection: KrepisTextSelectionProjection(
+      contentRevision: 1,
+      anchor: KrepisTextEndpointProjection(
+        blockId: '00000000000000000000000000000002',
+        graphemeBoundary: 0,
+        affinity: KrepisTextAffinity.downstream,
       ),
-    ],
+      focus: KrepisTextEndpointProjection(
+        blockId: '00000000000000000000000000000002',
+        graphemeBoundary: 0,
+        affinity: KrepisTextAffinity.downstream,
+      ),
+    ),
   );
 
   static const _frame = KrepisDisplayFrame(1, []);
@@ -49,18 +91,26 @@ final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
   int plainTextPasteCount = 0;
   int moveCount = 0;
   int convertCount = 0;
+  int toggleShortcutCount = 0;
+  bool toggleShortcutApplied = false;
   int inkBeginCount = 0;
   int inkCommitCount = 0;
+  List<Rect> selectionRects = const [];
+  bool rejectSelectionGeometry = false;
+  KrepisTextSelectionProjection? lastStableTextSelection;
+  KrepisTextSelectionProjection? lastStableBlockSelection;
   String? lastMarkdown;
   KrepisFlowBlockRange? lastMoveSource;
   KrepisFlowBlockTarget? lastMoveTarget;
   KrepisFlowBlockKind? lastConvertKind;
 
-  @override
-  final KrepisEditorSnapshot snapshot;
+  final KrepisDisplayFrame displayFrame;
 
   @override
-  KrepisDisplayFrame get frame => _frame;
+  KrepisEditorSnapshot snapshot;
+
+  @override
+  KrepisDisplayFrame get frame => displayFrame;
 
   @override
   String get filePath => r'C:\Notist dogfood\keyboard.krdf';
@@ -75,6 +125,14 @@ final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
 
   @override
   Rect caretRect(Size viewport, double scrollY) => Rect.zero;
+
+  @override
+  List<Rect> textSelectionRects(Size viewport, double scrollY) {
+    if (rejectSelectionGeometry) {
+      throw StateError('stale selection geometry');
+    }
+    return selectionRects;
+  }
 
   /// 版面矩形：高 32，相鄰之間無縫（24 + position * 32 恰好首尾相接）。
   @override
@@ -111,13 +169,14 @@ final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
   }
 
   @override
-  KrepisDisplayFrame render(Size size, double scrollY) => _frame;
+  KrepisDisplayFrame render(Size size, double scrollY) => displayFrame;
 
   @override
-  KrepisDisplayFrame renderReferenceFlow(int index, Size size) => _frame;
+  KrepisDisplayFrame renderReferenceFlow(int index, Size size) => displayFrame;
 
   @override
-  KrepisDisplayFrame renderSpatial(int index, Rect source, Size size) => _frame;
+  KrepisDisplayFrame renderSpatial(int index, Rect source, Size size) =>
+      displayFrame;
 
   @override
   Rect spatialBounds(int index) => Rect.zero;
@@ -142,6 +201,15 @@ final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
   @override
   void insertText(String text, {required int timestamp, required int group}) {
     plainTextPasteCount += 1;
+  }
+
+  @override
+  bool applyToggleShortcut({
+    required int expectedContentRevision,
+    required int timestamp,
+  }) {
+    toggleShortcutCount += 1;
+    return toggleShortcutApplied;
   }
 
   @override
@@ -171,7 +239,46 @@ final class KeyboardKrepisAuthority extends KrepisEditorAuthority {
   }) {}
 
   @override
-  void setStableSelection(KrepisTextSelectionProjection selection) {}
+  void setStableSelection(KrepisTextSelectionProjection selection) {
+    lastStableTextSelection = selection;
+    _replaceSelection(KrepisSelectionMode.text, selection);
+  }
+
+  @override
+  void setStableBlockSelection(KrepisTextSelectionProjection selection) {
+    lastStableBlockSelection = selection;
+    _replaceSelection(KrepisSelectionMode.blocks, selection);
+  }
+
+  void _replaceSelection(
+    KrepisSelectionMode mode,
+    KrepisTextSelectionProjection selection,
+  ) {
+    final focusPosition = snapshot.blocks.indexWhere(
+      (block) => block.id == selection.focus.blockId,
+    );
+    snapshot = KrepisEditorSnapshot(
+      rootId: snapshot.rootId,
+      title: snapshot.title,
+      text: snapshot.text,
+      contentRevision: snapshot.contentRevision,
+      blockCount: snapshot.blockCount,
+      blockPosition: focusPosition < 0
+          ? snapshot.blockPosition
+          : snapshot.blocks[focusPosition].position,
+      utf8ByteOffset: selection.focus.graphemeBoundary,
+      canUndo: snapshot.canUndo,
+      canRedo: snapshot.canRedo,
+      hasComposition: snapshot.hasComposition,
+      selectionMode: mode,
+      flowCount: snapshot.flowCount,
+      spatialCount: snapshot.spatialCount,
+      blocks: snapshot.blocks,
+      selection: selection,
+      applicability: snapshot.applicability,
+      undoHistoryEvicted: snapshot.undoHistoryEvicted,
+    );
+  }
 
   @override
   void moveFlowBlockRange({

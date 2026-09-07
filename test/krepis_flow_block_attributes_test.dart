@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'package:flutter_test/flutter_test.dart';
 import 'package:notist/src/krepis/krepis_block.dart';
 import 'package:notist/src/krepis/krepis_editing.dart';

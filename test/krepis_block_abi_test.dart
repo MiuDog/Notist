@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 import 'dart:ffi' as ffi;
 
 import 'package:flutter_test/flutter_test.dart';
@@ -14,15 +18,15 @@ void main() {
 
   test('maps every provider Block and inline mark kind without fallback', () {
     expect(
-      List.generate(8, KrepisFlowBlockKind.fromAbi),
+      List.generate(11, KrepisFlowBlockKind.fromAbi),
       KrepisFlowBlockKind.values,
     );
     expect(
-      List.generate(5, KrepisInlineMarkKind.fromAbi),
+      List.generate(6, KrepisInlineMarkKind.fromAbi),
       KrepisInlineMarkKind.values,
     );
-    expect(() => KrepisFlowBlockKind.fromAbi(8), throwsStateError);
-    expect(() => KrepisInlineMarkKind.fromAbi(5), throwsStateError);
+    expect(() => KrepisFlowBlockKind.fromAbi(11), throwsStateError);
+    expect(() => KrepisInlineMarkKind.fromAbi(6), throwsStateError);
   });
 
   test('keeps Block projection semantic fields immutable', () {

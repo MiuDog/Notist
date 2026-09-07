@@ -1,9 +1,14 @@
+/// Notist 專案模組。
+
+library;
+
 final class NotistFlowDocument {
   const NotistFlowDocument({
     required this.rootId,
     required this.title,
     required this.filePath,
     this.folderPath = '',
+    this.isPinned = false,
     this.blockCount = 0,
   });
 
@@ -11,6 +16,7 @@ final class NotistFlowDocument {
   final String title;
   final String filePath;
   final String folderPath;
+  final bool isPinned;
   final int blockCount;
 
   NotistFlowDocument withProjection({
@@ -22,6 +28,7 @@ final class NotistFlowDocument {
       title: title,
       filePath: filePath,
       folderPath: folderPath,
+      isPinned: isPinned,
       blockCount: blockCount,
     );
   }
@@ -32,6 +39,7 @@ final class NotistFlowDocument {
       title: title,
       filePath: filePath,
       folderPath: nextFolderPath,
+      isPinned: isPinned,
       blockCount: blockCount,
     );
   }

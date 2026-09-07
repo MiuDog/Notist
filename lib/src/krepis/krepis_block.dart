@@ -1,3 +1,7 @@
+/// Notist 專案模組。
+
+library;
+
 String formatKrepisRootId(int high, int low) {
   final unsignedHigh = BigInt.from(high).toUnsigned(64);
   final unsignedLow = BigInt.from(low).toUnsigned(64);
@@ -13,7 +17,10 @@ enum KrepisFlowBlockKind {
   taskListItem,
   blockQuote,
   codeBlock,
-  thematicBreak;
+  thematicBreak,
+  comment,
+  toggleListItem,
+  mathBlock;
 
   static KrepisFlowBlockKind fromAbi(int value) {
     if (value < 0 || value >= values.length) {
@@ -31,7 +38,8 @@ enum KrepisInlineMarkKind {
   strong,
   strikethrough,
   code,
-  link;
+  link,
+  math;
 
   static KrepisInlineMarkKind fromAbi(int value) {
     if (value < 0 || value >= values.length) {
@@ -67,6 +75,7 @@ final class KrepisFlowBlockProjection {
     required this.nestingDepth,
     required this.orderedStart,
     required this.taskChecked,
+    this.toggleCollapsed = false,
     required this.text,
     required this.info,
     required this.marks,
@@ -79,6 +88,7 @@ final class KrepisFlowBlockProjection {
   final int nestingDepth;
   final int orderedStart;
   final bool taskChecked;
+  final bool toggleCollapsed;
   final String text;
   final String info;
   final List<KrepisInlineMarkProjection> marks;
@@ -91,6 +101,7 @@ final class KrepisFlowBlockProjection {
       nestingDepth: nestingDepth,
       orderedStart: orderedStart,
       taskChecked: taskChecked,
+      toggleCollapsed: toggleCollapsed,
       info: info,
       marks: [
         for (final mark in marks)
@@ -141,6 +152,7 @@ final class KrepisFlowBlockDraft {
     this.nestingDepth = 0,
     this.orderedStart = 0,
     this.taskChecked = false,
+    this.toggleCollapsed = false,
     this.info = '',
     this.marks = const [],
   });
@@ -151,6 +163,7 @@ final class KrepisFlowBlockDraft {
   final int nestingDepth;
   final int orderedStart;
   final bool taskChecked;
+  final bool toggleCollapsed;
   final String info;
   final List<KrepisInlineMarkDraft> marks;
 }
